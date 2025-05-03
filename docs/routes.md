@@ -1,0 +1,10 @@
+POST /auth/register
+POST /auth/login
+GET /user/me
+POST /trips/log
+GET /trips/history
+GET /rewards/points
+POST /rewards/redeem
+GET /marketplace
+POST /friends/add
+GET /leaderboard
