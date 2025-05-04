@@ -18,4 +18,4 @@ class LocationPing(BaseModel):
     user_id: str
     latitude: float
     longitude: float
-    timestamp: Optional[float] = time.time()
+    timestamp: str

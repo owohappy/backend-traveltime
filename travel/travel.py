@@ -1,102 +1,129 @@
-# travel.py
-
-from typing import List, Dict, Optional
-from geopy.distance import geodesic
-import httpx
+import requests
+from shapely.geometry import Point, LineString, Polygon, mapping
+from shapely.ops import unary_union
+import threading
 import time
-import math
 
-TRANSIT_API_URL = "https://transit.land/api/v2/rest/vehicles"
-TRANSIT_API_KEY = "your_api_key_here"
-PROXIMITY_THRESHOLD_METERS = 100
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-user_travel_logs: Dict[str, List[Dict]] = {}
-user_active_trips: Dict[str, Dict] = {}
-user_points: Dict[str, int] = {}
+class JourneyTracker:
+    def __init__(self, radius=10):
+        """
+        radius: search radius in meters for detecting nearby routes
+        """
+        self.radius = radius
+        # user_states maps user_id -> dict with keys:
+        #   'state': 'off_route' or 'on_route'
+        #   'route': dict with route info (id, name, geometry)
+        #   'pings': list of (lat, lon, timestamp)
+        #   'start_time': timestamp when boarded
+        self.user_states = {}
+        # lock for thread safety
+        self.lock = threading.Lock()
 
-async def fetch_live_transit_data() -> List[Dict]:
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(
-                TRANSIT_API_URL,
-                params={"api_key": TRANSIT_API_KEY}
-            )
-            response.raise_for_status()
-            return response.json().get("vehicles", [])
-        except Exception as e:
-            print(f"Transit API error: {e}")
-            return []
+    def _overpass_query(self, lat, lon):
+        """
+        Query Overpass for any public-transport "route" relations within self.radius meters
+        Returns list of relations with geometry and tags.
+        """
+        # Overpass QL: find relations with route=* around point
+        q = f"""
+        [out:json];
+        (
+          relation["type"="route"](around:{self.radius},{lat},{lon});
+        );
+        out geom tags;
+        """
+        r = requests.post(OVERPASS_URL, data={"data": q})
+        r.raise_for_status()
+        data = r.json()
+        routes = []
+        for rel in data.get("elements", []):
+            geom = rel.get("members", [])
+            # extract all ways (LineStrings)
+            lines = []
+            for m in geom:
+                if m["type"] == "way" and "geometry" in m:
+                    coords = [(pt["lon"], pt["lat"]) for pt in m["geometry"]]
+                    lines.append(LineString(coords))
+            if not lines:
+                continue
+            # merge into single multilinestring or polygon if closed
+            merged = unary_union(lines)
+            # tags
+            name = rel["tags"].get("name", rel["tags"].get("ref", "unknown"))
+            routes.append({
+                "id": rel["id"],
+                "name": name,
+                "geometry": merged
+            })
+        return routes
 
-async def check_if_on_transit(user_id: str, latitude: float, longitude: float, timestamp: Optional[float] = None):
-    user_loc = (latitude, longitude)
-    timestamp = timestamp or time.time()
-    vehicles = await fetch_live_transit_data()
+    def _compute_route_area(self, geometry):
+        """
+        Given a LineString or MultiLineString, buffer slightly and compute area.
+        Returns area in square meters.
+        """
+        # buffer by small amount to produce polygon; buffer distance tuned for area calc
+        poly: Polygon = geometry.buffer(1.0)  # 1m buffer
+        return poly.area
 
-    is_on_transit = False
-    matched_vehicle_id = None
-    closest_distance = float("inf")
+    def process_ping(self, user_id: str, lat: float, lon: float, timestamp: float):
+        """
+        Ingest a single GPS ping for user_id at (lat, lon) at UNIX timestamp.
+        Returns a Journey dict if the user just completed a journey, otherwise None.
+        """
+        pt = Point(lon, lat)
+        with self.lock:
+            state = self.user_states.get(user_id, {"state": "off_route"})
+            # if currently off-route, see if we detect boarding
+            if state["state"] == "off_route":
+                routes = self._overpass_query(lat, lon)
+                if not routes:
+                    return None
+                # choose the route whose geometry is closest
+                best = min(routes, key=lambda r: r["geometry"].distance(pt))
+                # initialize route tracking
+                state = {
+                    "state": "on_route",
+                    "route": best,
+                    "pings": [(lat, lon, timestamp)],
+                    "start_time": timestamp,
+                }
+                # compute and store total route area
+                state["route"]["area_sqm"] = self._compute_route_area(best["geometry"])
+                self.user_states[user_id] = state
+                return None
 
-    for vehicle in vehicles:
-        coords = vehicle.get("geometry", {}).get("coordinates", [])
-        if len(coords) != 2:
-            continue
+            # if currently on-route
+            else:
+                geom = state["route"]["geometry"]
+                dist = geom.distance(pt)
+                # still on route if within radius (plus small tolerance)
+                if dist <= self.radius + 0.5:
+                    state["pings"].append((lat, lon, timestamp))
+                    return None
+                else:
+                    # user has left the route → finalize journey
+                    journey = {
+                        "user_id": user_id,
+                        "route_id": state["route"]["id"],
+                        "route_name": state["route"]["name"],
+                        "route_area_sqm": state["route"]["area_sqm"],
+                        "start_time": state["start_time"],
+                        "end_time": state["pings"][-1][2],
+                        "duration_s": state["pings"][-1][2] - state["start_time"],
+                        "pings": state["pings"],
+                    }
+                    # reset user state
+                    self.user_states[user_id] = {"state": "off_route"}
+                    return journey
 
-        vehicle_loc = (coords[1], coords[0])
-        distance = geodesic(user_loc, vehicle_loc).meters
+def gpsinput(user, lat, lon):
+    jt = JourneyTracker(radius=10)
+    ts = time.time()
+    result = jt.process_ping(user, lat, lon, ts)
 
-        if distance < PROXIMITY_THRESHOLD_METERS and distance < closest_distance:
-            is_on_transit = True
-            matched_vehicle_id = vehicle.get("onestop_id")
-            closest_distance = distance
-
-    if is_on_transit:
-        # Start or continue tracking
-        active = user_active_trips.get(user_id)
-        if not active:
-            user_active_trips[user_id] = {
-                "start_time": timestamp,
-                "vehicle_id": matched_vehicle_id
-            }
-        elif active["vehicle_id"] != matched_vehicle_id:
-            # Switched vehicle → treat as new trip
-            await end_trip(user_id, timestamp)
-            user_active_trips[user_id] = {
-                "start_time": timestamp,
-                "vehicle_id": matched_vehicle_id
-            }
-
-        return {
-            "status": "on_transit",
-            "vehicle_id": matched_vehicle_id,
-            "distance_to_vehicle_m": round(closest_distance, 2)
-        }
-
-    else:
-        # No longer on transit → end trip if needed
-        if user_id in user_active_trips:
-            await end_trip(user_id, timestamp)
-        return {"status": "not_on_transit"}
-
-async def end_trip(user_id: str, end_time: float):
-    trip = user_active_trips.pop(user_id, None)
-    if not trip:
-        return
-
-    duration_sec = end_time - trip["start_time"]
-    minutes = max(1, math.floor(duration_sec / 60))
-    user_points[user_id] = user_points.get(user_id, 0) + minutes
-
-    log = user_travel_logs.setdefault(user_id, [])
-    log.append({
-        "vehicle_id": trip["vehicle_id"],
-        "start_time": trip["start_time"],
-        "end_time": end_time,
-        "minutes": minutes,
-        "points_awarded": minutes
-    })
-
-def get_user_log(user_id: str) -> List[Dict]:
-    return user_travel_logs.get(user_id, [])
 
 def get_user_points(user_id: str) -> int:
     return user_points.get(user_id, 0)
