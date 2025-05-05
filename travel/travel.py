@@ -123,7 +123,6 @@ def gpsinput(user, lat, lon):
     jt = JourneyTracker(radius=10)
     ts = time.time()
     result = jt.process_ping(user, lat, lon, ts)
+    return result
 
 
-def get_user_points(user_id: str) -> int:
-    return user_points.get(user_id, 0)
