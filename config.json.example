@@ -1,8 +1,20 @@
 {
     "app": {
       "debug": true,
-      "base_url": "http://localhost:8000",
-      "nameDB": "test"
+      "baseURL": "http://localhost:8000",
+      "nameDB": "test",
+      "jwtSecretKey": ""
+    },
+    "email":
+    {
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "username": "",
+            "password": "",
+            "senderEmail":""
+        },
+        "enabled": false
+
     }
-  }
-  
+}
