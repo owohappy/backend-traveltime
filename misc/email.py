@@ -3,17 +3,18 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import ssl 
 import threading
-from main import baseURL
+from misc import config
 # --- Configuration ---
-smtp_ser = "127.0.0.1"
-smtp_port = 1025
-username = "roeder.lucas@proton.me"
-password = "U8RROl6MEqdWS77h6o2oKQ"
+jsonConfig = config.config
+emailEnabled = jsonConfig['email']['enabled']
+baseURL = jsonConfig['app']['baseURL']
+smtp_ser = jsonConfig['email']['smtp']['host']
+smtp_port = jsonConfig['email']['smtp']['port']
+username = jsonConfig['email']['smtp']['username']
+password = jsonConfig['email']['smtp']['password']
+sender_email = jsonConfig['email']['smtp']['senderEmail']
 
-sender_email = "roeder.lucas@proton.me"
 subject = "verify your traveltime account"
-
-emailEnabled = False
 
 _DEFAULT_CIPHERS = (
     'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'

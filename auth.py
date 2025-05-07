@@ -8,7 +8,8 @@ from typing import Optional
 import string
 import misc
 import random
-
+from misc import config
+jsonConfig = config.config
 import misc.logging
 # === Password Hashing ===
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,7 +22,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 # === JWT Handling ===
-SECRET_KEY = "your_super_secret_key_here" 
+SECRET_KEY = jsonConfig['app']['jwtSecretKey']
+if SECRET_KEY == "":
+    SECRET_KEY = "your_super_secret_key_here"  # Default value if not set in config
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 

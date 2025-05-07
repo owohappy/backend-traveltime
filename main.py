@@ -8,7 +8,7 @@ from misc import models, schemas
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from travel import travel
 import time
-from misc import email, logging
+from misc import email, logging, config
 from fastapi.middleware.cors import CORSMiddleware
 from random import randrange
 from auth import (
@@ -19,11 +19,13 @@ from auth import (
 )
 from sqlalchemy import update
 
-debugBool = True
+jsonConfig = config.config
+
 app = FastAPI()
 origins = ["*"]
-nameDB = "test"
-baseURL= "http://localhost:8000"
+debugBool = jsonConfig['app']['debug']
+nameDB = jsonConfig['app']['nameDB']
+baseURL = jsonConfig['app']['baseURL']
 
 app.add_middleware(
     CORSMiddleware,

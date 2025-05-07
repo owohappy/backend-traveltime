@@ -1,0 +1,8 @@
+{
+    "app": {
+      "debug": true,
+      "base_url": "http://localhost:8000",
+      "nameDB": "test"
+    }
+  }
+  
