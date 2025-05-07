@@ -4,9 +4,9 @@ from sqlalchemy import create_engine, select
 from random import randrange
 import logging
 from misc import config, schemas, models
-from auth import hash_password, is_token_valid, verify_password, create_access_token, create_verify_token, blacklist_token
+from auth.auth import hash_password, is_token_valid, verify_password, create_access_token, create_verify_token, blacklist_token
 from misc import email
-from sqlmodel import SQLModel, Field, Session, create_engine, select
+from sqlmodel import SQLModel, Session, create_engine, select
 
 app = APIRouter()
 jsonConfig = config.config

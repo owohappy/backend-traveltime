@@ -70,7 +70,7 @@ def blacklist_token(token: str):
 def create_verify_token(userid: str):
     characters = string.ascii_letters + string.digits  # a-zA-Z0-9
     verify = ''.join(random.choices(characters, k=18))  
-    verifyTokens.append({"userid":userid, "verifytoken": verify, "exp": datetime.now() + timedelta(seconds=600)})
+    verifyTokens.append({"userid":userid, "verifytoken": verify})
     return verify
 
 
@@ -78,9 +78,11 @@ def check_email_token(userid: str, token: str):
     now = datetime.now()
     for entry in verifyTokens:
         if entry["userid"] == userid and entry["verifytoken"] == token:
-            if now <= entry["exp"]:
-                return {"valid": True}
-            else:
-                return {"valid": False, "reason": "The link has already expired"}  
+            return {"valid": True}
     return {"valid": False, "reason": "The link can't be found in our database"}
 
+def create_reset_token(userid: str):
+    characters = string.ascii_letters + string.digits  # a-zA-Z0-9
+    verify = ''.join(random.choices(characters, k=18))  
+    verifyTokens.append({"userid":userid, "verifytoken": verify, "exp": datetime.now() + timedelta(seconds=1800)})
+    return verify

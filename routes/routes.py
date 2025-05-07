@@ -6,7 +6,7 @@ from travel import travel
 from misc import email, logging, config
 from fastapi.middleware.cors import CORSMiddleware
 from random import randrange
-from auth import (
+from auth.auth import (
     hash_password, verify_password,
     create_access_token, get_current_user, 
     create_verify_token, check_email_token,
