@@ -49,5 +49,11 @@ def log(message: str, type:str = "error"):
         print(data)
         write_to_file(logfilename, data)
         return None
+    if (type == "critical"):
+        data = f"[{current_time}] {Fore.RED} {type}:{Fore.RED} {message}"
+        print(data)
+        write_to_file(logfilename, data)
+        exit(1)
+        return None
     
         

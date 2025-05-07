@@ -2,3 +2,5 @@ config.json
 .vscode
 __pytest_cache__
 __pycache__
+misc/logging/*.*
+db/*.*

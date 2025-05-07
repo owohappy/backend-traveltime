@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from misc import config, routes
+from misc import config
 from fastapi.middleware.cors import CORSMiddleware
 from random import randrange
 from auth import (
@@ -10,6 +10,8 @@ from auth import (
     is_token_valid, blacklist_token
 )
 from sqlalchemy import update
+import routes
+import routes.auth
 
 # get data from json file and set config
 jsonConfig = config.config
@@ -25,4 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # === Include routes from routes file ===
-app.include_router(routes.app)
+app.include_router(routes.auth.app)
+
+
+
