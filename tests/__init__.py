@@ -12,5 +12,7 @@ assert main.register(models.user(id=userID, email=userEMAIL, hashed_password=mai
 Depends(main.get_session) 
 )
 token = main.login(schemas.UserLogin(email=userEMAIL, password=password) ,Depends(main.get_session) )
-print("token generated: " + token)
-
+if token != None: 
+    print("token generated: " + token)
+else:
+    pass

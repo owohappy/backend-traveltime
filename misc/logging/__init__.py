@@ -1,5 +1,21 @@
 import datetime
 from colorama import Fore, Back, Style
+import os
+
+def write_to_file(filename, line_of_text):
+    # Check if the file exists
+    if not os.path.exists(filename):
+        # Create the file and write the line
+        with open(filename, 'w') as file:
+            file.write(line_of_text + '\n')
+        print(f"File '{filename}' created and text added.")
+    else:
+        # Append to the existing file
+        with open(filename, 'a') as file:
+            file.write(line_of_text + '\n')
+        print(f"Text appended to existing file '{filename}'.")
+
+logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) + ".txt"
 
 def log(message: str, type:str = "error"):
     '''
@@ -14,16 +30,24 @@ def log(message: str, type:str = "error"):
     current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
     if (type == "error"):
-        print(f"[{current_time}] {Fore.RED} {type}: {Fore.WHITE} {message}")
+        data = f"[{current_time}] {Fore.RED} {type}: {Fore.WHITE} {message}"
+        print(data)
+        write_to_file(logfilename, data)
         return None
     if (type == "warning"):
-        print(f"[{current_time}] {Fore.YELLOW} {type}:{Fore.WHITE} {message}")
+        data = f"[{current_time}] {Fore.YELLOW} {type}:{Fore.WHITE} {message}"
+        print(data)
+        write_to_file(logfilename, data)
         return None
     if (type == "info"):
-        print(f"[{current_time}] {Fore.CYAN} {type}:{Fore.WHITE} {message}")
+        data = f"[{current_time}] {Fore.CYAN} {type}:{Fore.WHITE} {message}"
+        print(data)
+        write_to_file(logfilename, data)
         return None
     if (type == "debug"):
-        print(f"[{current_time}] {Fore.BLUE} {type}:{Fore.WHITE} {message}")
+        data = f"[{current_time}] {Fore.BLUE} {type}:{Fore.WHITE} {message}"
+        print(data)
+        write_to_file(logfilename, data)
         return None
     
         

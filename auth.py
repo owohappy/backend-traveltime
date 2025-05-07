@@ -6,7 +6,10 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
 import string
+import misc
 import random
+
+import misc.logging
 # === Password Hashing ===
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 verifyTokens = []
@@ -18,11 +21,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 # === JWT Handling ===
-SECRET_KEY = "your_super_secret_key_here"  # Set a real secret!
+SECRET_KEY = "your_super_secret_key_here" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
-blacklisted_tokens = set()  # ⬅️ Add in-memory blacklist
+blacklisted_tokens = set()  
+
+# Check if user changed the key for jwt or default is still being used
+if SECRET_KEY == "your_super_secret_key_here":
+    misc.logging.log("JWT key value is not changed", "warning")
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()

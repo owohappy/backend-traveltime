@@ -58,7 +58,7 @@ def register(user: schemas.UserCreate, session: Session = Depends(get_session)):
     if not debugBool:
         email.sendVerfyEmail(new_user.email, verify)
     else: 
-        logging.log("Verify URL: http://localhost:8000/user/" + str(new_user.id) + "/verify/" + verify, "debug")
+        logging.log("Verify URL: "+ baseURL + "/user/" + str(new_user.id) + "/verify/" + verify, "debug")
     return {"access_token": token, "token_type": "bearer", "userID": userid}
 
 @app.post("/login", response_model=schemas.Token)
@@ -77,8 +77,8 @@ def logout(token: str = Depends(schemas.Token)):
 # TODO: add api cooldown for heartbeat
 ### TODO: (Token based cooldown)
 
-### Account Shit 
 
+# User data handling for points and general data 
 
 @app.get("/user/{user_id}/points")
 def user_points(user_id: str, current_user: str = Depends(get_current_user)):

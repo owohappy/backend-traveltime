@@ -3,6 +3,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import ssl 
 import threading
+from main import baseURL
 # --- Configuration ---
 smtp_ser = "127.0.0.1"
 smtp_port = 1025
@@ -44,13 +45,13 @@ def sendEmail(user_id, subject, html, server):
     print("Email sent!")
     
 def sendVerifyEmail(user_id: str, verify: str):
-    url = f"http://localhost:8000/user/{user_id}/verify/{verify}"
+    url = f"{baseURL}/user/{user_id}/verify/{verify}"
     html_content = html_template.replace("{{URL}}", url)
     x = threading.Thread(target=sendEmail, args=(user_id, subject, html_content, server,))
     x.start()   
 
 def sendPasswordResetEmail(user_id: str, verify: str, email:str):
-    url = f"http://localhost:8000/user/{user_id}/reset_pw/{verify}"
+    url = f"{baseURL}/user/{user_id}/reset_pw/{verify}"
     html_content = html_template.replace("{{URL}}", url)
     x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
     x.start()   

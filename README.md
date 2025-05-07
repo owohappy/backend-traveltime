@@ -1,6 +1,6 @@
-# Project Name
+# taveltime
 
-A brief description of your project and its purpose.
+A App that rewards you for taking the bus instead of the car 
 
 ## Prerequisites
 
@@ -15,8 +15,8 @@ Follow these steps to set up and run the project locally.
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+git clone https://github.com/owohappy/traveltime-backend.git
+cd traveltime-backend
 ```
 
 ### Build and Start the Containers
@@ -27,18 +27,10 @@ docker-compose up --build
 
 ### Access the Application
 
-- The application will be available at `http://localhost:PORT` (replace `PORT` with the appropriate port number).
+- The application will be available at `http://localhost:8000` (Port can be changed in the server config).
 
 ## Project Structure
-
-```
-.
-├── docker-compose.yml
-├── Dockerfile
-├── src/
-├── README.md
-└── ...
-```
+TODO
 
 - **docker-compose.yml**: Defines the services and their configurations.
 - **Dockerfile**: Instructions to build the application image.
