@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Session, create_engine, select
+from sqlmodel import SQLModel, Field
 from typing import Optional
 from datetime import datetime 
 # === Database Model ===
@@ -12,7 +12,10 @@ class User(SQLModel, table=True):
     phonenumber: Optional[str]
     address: Optional[str]
     email_verified_at: Optional[datetime] = Field(default=None)
+    mfa: bool = Field(default=False)
+    mfa_secret: str = None
 
+    
 class UserPoints(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")

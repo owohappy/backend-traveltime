@@ -55,6 +55,12 @@ def sendVerifyEmail(user_id: str, verify: str):
 
 def sendPasswordResetEmail(user_id: str, verify: str, email:str):
     url = f"{baseURL}/user/{user_id}/reset_pw/{verify}"
-    html_content = html_template.replace("{{URL}}", url)
+    html_content = html_template2.replace("{{URL}}", url)
     x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
     x.start()   
+
+def send2FAEnableEmail(user_id: str, verify: str, email:str):
+    url = f"{baseURL}/user/{user_id}/2fa/enable/{verify}"
+    html_content = html_template2.replace("{{URL}}", url)
+    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
+    x.start()

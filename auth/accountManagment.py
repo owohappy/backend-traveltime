@@ -66,6 +66,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
 def blacklist_token(token: str):
     blacklisted_tokens.add(token)
 
+# Token to verify email
 
 def create_verify_token(userid: str):
     characters = string.ascii_letters + string.digits  # a-zA-Z0-9
@@ -74,15 +75,26 @@ def create_verify_token(userid: str):
     return verify
 
 
-def check_email_token(userid: str, token: str):
+def check_verify_token(userid: str, token: str):
     now = datetime.now()
     for entry in verifyTokens:
         if entry["userid"] == userid and entry["verifytoken"] == token:
             return {"valid": True}
     return {"valid": False, "reason": "The link can't be found in our database"}
 
+# Token to reset password
+
 def create_reset_token(userid: str):
     characters = string.ascii_letters + string.digits  # a-zA-Z0-9
     verify = ''.join(random.choices(characters, k=18))  
     verifyTokens.append({"userid":userid, "verifytoken": verify, "exp": datetime.now() + timedelta(seconds=1800)})
     return verify
+
+def check_reset_token(userid: str, token: str):
+    now = datetime.now()
+    for entry in verifyTokens:
+        if entry["userid"] == userid and entry["verifytoken"] == token:
+            if entry.get("exp") < now:
+                return {"valid": False, "reason": "Token expired"}
+            return {"valid": True}
+    return {"valid": False, "reason": "The link can't be found in our database"}

@@ -22,3 +22,27 @@ class LocationPing(BaseModel):
     latitude: float
     longitude: float
     timestamp: str
+
+class oauth2_scheme(BaseModel):
+    client_id: str
+    client_secret: str
+    redirect_uri: str
+    mfa_code: str
+    grant_type: str = "authorization_code"
+    scope: Optional[str] = None
+
+class PasswordReset(BaseModel):
+    email: EmailStr
+    password: str
+    token: str
+    timestamp: str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    token: str
+    timestamp: str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+class MFAVerification(BaseModel):
+    user_id: str
+    mfa_code: str
+    timestamp: str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())

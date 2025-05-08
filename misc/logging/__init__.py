@@ -8,12 +8,10 @@ def write_to_file(filename, line_of_text):
         # Create the file and write the line
         with open(filename, 'w') as file:
             file.write(line_of_text + '\n')
-        print(f"File '{filename}' created and text added.")
     else:
         # Append to the existing file
         with open(filename, 'a') as file:
             file.write(line_of_text + '\n')
-        print(f"Text appended to existing file '{filename}'.")
 
 logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) + ".txt"
 
@@ -54,6 +52,11 @@ def log(message: str, type:str = "error"):
         print(data)
         write_to_file(logfilename, data)
         exit(1)
+        return None
+    if (type == "success"):
+        data = f"[{current_time}] {Fore.GREEN} {type}:{Fore.WHITE} {message}"
+        print(data)
+        write_to_file(logfilename, data)
         return None
     
         
