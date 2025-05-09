@@ -29,7 +29,7 @@ try:
     app.include_router(routes.auth.app)
     logging.log("Auth routes have been loaded", "info")
 except Exception as e:
-    logging.log("Error loading auth routes: " + str(e), "critical")
+    logging.log("Error loading auth routes: " + str(e),  "critical")
     pass
 try:    
     app.include_router(routes.account.app)

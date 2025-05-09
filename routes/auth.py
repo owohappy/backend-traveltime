@@ -47,6 +47,18 @@ async def logout(token: str = Depends(schemas.oauth2_scheme)):
     return await auth.logout(token)
 
 # ======================
+# Token Refresh
+# ======================
+@app.post("/refresh-token",
+          response_model=schemas.Token,
+          summary="Refresh access token",
+          description="Generates a new access token using the refresh token")
+async def refresh_token(
+    token: str = Depends(schemas.oauth2_scheme),
+    session: Session = Depends(db.get_session)
+):
+    """Refresh access token using refresh token"""
+    return await auth.refresh_token(token, session)
 # Password Management
 # ======================
 

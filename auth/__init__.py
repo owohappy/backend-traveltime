@@ -261,3 +261,11 @@ async def enable_2fa(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to enable 2FA"
         )
+
+async def revoke_tokens(
+    current_user: models.User = Depends(get_current_user),
+    session: Session = Depends(db.get_session)
+):
+    """Revoke all tokens for the current user"""
+    try:
+        
