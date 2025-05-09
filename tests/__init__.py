@@ -16,3 +16,7 @@ if token != None:
     print("token generated: " + token)
 else:
     pass
+
+assert main.get_current_user(token, Depends(main.get_session)) == userEMAIL
+
+

@@ -268,4 +268,6 @@ async def revoke_tokens(
 ):
     """Revoke all tokens for the current user"""
     try:
-        
+        return None 
+    except Exception as e: 
+        return None

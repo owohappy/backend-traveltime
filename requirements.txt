@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+requests
+sqlmodel
+passlib[bcrypt]
+python-jose[cryptography]
+pyotp
+colorama
+shapely
+pydantic[email]

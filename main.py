@@ -24,7 +24,6 @@ app.add_middleware(
 
 
 # === Include routes from routes file ===
-
 try:
     app.include_router(routes.auth.app)
     logging.log("Auth routes have been loaded", "info")

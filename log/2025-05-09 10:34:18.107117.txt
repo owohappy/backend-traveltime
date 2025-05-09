@@ -1,0 +1,5 @@
+[10:35:45] [33m warning:[37m JWT key value is not changed
+[10:35:46] [36m info:[37m Auth routes have been loaded
+[10:35:46] [36m info:[37m Account routes have been loaded
+[10:35:46] [36m info:[37m Travel routes have been loaded
+[10:35:46] [32m success:[37m API has been started

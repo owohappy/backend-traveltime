@@ -9,16 +9,26 @@ def get_users_count(session: Session = Depends(db.get_session)):
     """
     Returns the total number of registered users.
     """
-    count = session.exec(select(models.User)).count()
+    try:
+        count = session.exec(select(models.User)).count()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error counting users")
+    if count is None:
+        raise HTTPException(status_code=404, detail="No users found")
     return {"users_count": count}
 
 @app.get("/stats/points_total")
 def get_points_total(session: Session = Depends(db.get_session)):
     """
     Returns the total amount of points earned by all users.
-    """     
-    total = session.exec(select(models.UserPoints)).all()
-    points_sum = sum(up.points for up in total)
+    """
+    try:
+        total = session.exec(select(models.UserPoints)).all()
+        points_sum = sum(up.points for up in total)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating total points")
+    if points_sum is None:
+        raise HTTPException(status_code=404, detail="No points found")
     return {"points_total": points_sum}
 
 @app.get("/stats/leaderboard")
@@ -29,6 +39,10 @@ def get_leaderboard(session: Session = Depends(db.get_session)):
     statement = select(models.UserPoints).order_by(desc(models.UserPoints.points)).limit(10)
     top_points = session.exec(statement).all()
     leaderboard = []
+    # Check if there are any users with points already exsisting
+    if not top_points:
+        raise HTTPException(status_code=404, detail="No points found")
+    
     for entry in top_points:
         user = session.exec(select(models.User).where(models.User.id == entry.user_id)).first()
         leaderboard.append({

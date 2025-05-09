@@ -119,10 +119,15 @@ class JourneyTracker:
                     self.user_states[user_id] = {"state": "off_route"}
                     return journey
 
+
+# Handle input from /heartbeat endpoint and return needed data
+
 def gpsinput(user, lat, lon):
     jt = JourneyTracker(radius=10)
     ts = time.time()
     result = jt.process_ping(user, lat, lon, ts)
     return result
+
+
 
 

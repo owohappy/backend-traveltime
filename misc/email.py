@@ -2,6 +2,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import ssl 
+from misc import logging
 import threading
 from misc import config
 # --- Configuration ---
@@ -21,6 +22,13 @@ _DEFAULT_CIPHERS = (
     'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:'
     '!eNULL:!MD5'
 )
+
+if (username == "" or password == "" or sender_email == "" or smtp_port == "" or smtp_ser == ""):
+    if emailEnabled:
+        logging.log("Email configuration is not set up correctly. Please check your config.json file.", "critical")
+    else:
+        logging.log("Email configuration is not set up correctly. Please check your config.json file.", "info")
+
 
 
 global server
