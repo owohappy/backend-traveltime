@@ -17,7 +17,7 @@ async def heartbeat(user_id: str, ping: schemas.LocationPing, request: Request):
     '''
     Using GPS loc in a cords. format we get the users position and try to estimate the current route a user is on
     '''
-    #TODO: Auth
+    #get headers with auth token
     headers = request.headers
     auth = headers.get("Authorization")
     if is_token_valid(auth):
@@ -34,7 +34,7 @@ def confirm_travel(user_id: str, travel_id: str, request: Request):
     '''
     Used to confirm the travle with some form of proof(TODO)
     '''
-    #TODO: Auth
+    #get headers with auth token
     headers = request.headers
     auth = headers.get("Authorization")
     if is_token_valid(auth):
