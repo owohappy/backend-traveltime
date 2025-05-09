@@ -39,10 +39,10 @@ if emailEnabled:
 
 
 # --- Load HTML Template ---
-with open("misc/template.html", "r", encoding="utf-8") as f:
+with open("misc/templates/emailVerify.html", "r", encoding="utf-8") as f:
     html_template = f.read()
 
-with open("misc/template2.html", "r", encoding="utf-8") as f:
+with open("misc/templates/passwordReset.html", "r", encoding="utf-8") as f:
     html_template2 = f.read()
 
 def sendEmail(user_id, subject, html, server):
