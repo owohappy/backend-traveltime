@@ -13,7 +13,7 @@ def write_to_file(filename, line_of_text):
         with open(filename, 'a') as file:
             file.write(line_of_text + '\n')
 
-logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')) + ".txt"
+logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d|%H:%M:%S.%f')) + ".txt"
 
 def log(message: str, type:str = "error"):
     '''
@@ -24,6 +24,8 @@ def log(message: str, type:str = "error"):
         warning = logging for warning
         info = logging for info 
         debug = logging for debug
+        critical = logging for critical
+        success = logging for success
     '''
     current_time = datetime.datetime.now().strftime("%H:%M:%S")
 

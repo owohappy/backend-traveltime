@@ -123,6 +123,12 @@ class JourneyTracker:
 # Handle input from /heartbeat endpoint and return needed data
 
 def gpsinput(user, lat, lon):
+    '''
+    function to handle input from /heartbeat endpoint
+    user: user id
+    lat: latitude
+    lon: longitude
+    '''
     jt = JourneyTracker(radius=10)
     ts = time.time()
     result = jt.process_ping(user, lat, lon, ts)

@@ -1,6 +1,9 @@
 from random import random
 from datetime import datetime, timedelta
 import string
+from misc import db
+#TODO: create a database table for mfa tokens and temp tokens
+
 
 mfaTokens = []
 tempTokens = []
