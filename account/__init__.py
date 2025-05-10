@@ -1,14 +1,20 @@
-from fastapi import Depends, Header
-from misc import schemas
+from fastapi import Depends, Header, HTTPException
+from misc import schemas, db
+from . import dataManagment
 
-def user_get_data(user_id: str, token: str = Depends(schemas.Token)):
+def user_get_data(user_id: str, session=Depends(db.get_session)):
     '''
     Allowing users to get their data 
     '''
-    return None
+    return dataManagment.get_user_data(user_id, session)
 
-async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token)):
+async def user_update_data(
+    user_id: str,
+    field: str = Header(...),
+    data: str = Header(...),
+    session=Depends(db.get_session)
+):
     '''
     Allowing users to update their info using the field and data headers
     '''
-    return None
+    return dataManagment.update_user_data(user_id, field, data, session)

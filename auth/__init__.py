@@ -98,6 +98,10 @@ async def register(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
         )
+    
+
+
+    
 async def login(
     credentials: schemas.UserLogin,
     session: Session = Depends(db.get_session)

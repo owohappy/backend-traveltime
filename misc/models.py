@@ -14,6 +14,7 @@ class User(SQLModel, table=True):
     email_verified_at: Optional[datetime] = Field(default=None)
     mfa: bool = Field(default=False)
     mfa_secret: str = None
+    type: str = Field(default="user")
 
     
 class UserPoints(SQLModel, table=True):
@@ -23,3 +24,9 @@ class UserPoints(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
 
+class Reward(SQLModel, table=True):
+    name: str = Field(max_length=100)
+    description: str = Field(max_length=1000)
+    points: int
+    id: int = Field(default=None, primary_key=True)
+    issuer: str = Field(max_length=100)

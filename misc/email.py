@@ -5,6 +5,15 @@ import ssl
 from misc import logging
 import threading
 from misc import config
+
+
+_DEFAULT_CIPHERS = (
+    'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'
+    'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:'
+    '!eNULL:!MD5'
+)
+
+
 # --- Configuration ---
 jsonConfig = config.config
 emailEnabled = jsonConfig['email']['enabled']
@@ -15,13 +24,16 @@ username = jsonConfig['email']['smtp']['username']
 password = jsonConfig['email']['smtp']['password']
 sender_email = jsonConfig['email']['smtp']['senderEmail']
 
-subject = "verify your traveltime account"
 
-_DEFAULT_CIPHERS = (
-    'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'
-    'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:'
-    '!eNULL:!MD5'
-)
+global server
+
+#Predefine email Subjects TODO: make this able to be changed in the .json config
+subject_verifyEmail = "verify your traveltime account"
+subject_resetPassword = "reset your traveltime password"
+subject_enableMFA = "your MFA activation code"
+
+
+
 
 if (username == "" or password == "" or sender_email == "" or smtp_port == "" or smtp_ser == ""):
     if emailEnabled:
@@ -31,7 +43,7 @@ if (username == "" or password == "" or sender_email == "" or smtp_port == "" or
 
 
 
-global server
+
 if emailEnabled:
     context = ssl._create_unverified_context()
     server = smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context)
@@ -58,17 +70,24 @@ def sendEmail(user_id, subject, html, server):
 def sendVerifyEmail(user_id: str, verify: str):
     url = f"{baseURL}/user/{user_id}/verify/{verify}"
     html_content = html_template.replace("{{URL}}", url)
-    x = threading.Thread(target=sendEmail, args=(user_id, subject, html_content, server,))
+    x = threading.Thread(target=sendEmail, args=(user_id, subject_verifyEmail, html_content, server,))
     x.start()   
 
 def sendPasswordResetEmail(user_id: str, verify: str, email:str):
     url = f"{baseURL}/user/{user_id}/reset_pw/{verify}"
     html_content = html_template2.replace("{{URL}}", url)
-    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
+    x = threading.Thread(target=sendEmail, args=(email, subject_resetPassword, html_content, server,))
     x.start()   
 
 def send2FAEnableEmail(user_id: str, verify: str, email:str):
     url = f"{baseURL}/user/{user_id}/2fa/enable/{verify}"
     html_content = html_template2.replace("{{URL}}", url)
-    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
+    x = threading.Thread(target=sendEmail, args=(email, subject_enableMFA, html_content, server,))
     x.start()
+
+def sendRewardEmail(user_id: str, reward: str, email:str):
+    url = f"{baseURL}/user/{user_id}/reward/{reward}"
+    html_content = html_template2.replace("{{URL}}", url)
+    x = threading.Thread(target=sendEmail, args=(email, subject_enableMFA, html_content, server,))
+    x.start()
+
