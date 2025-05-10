@@ -1,10 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select, update
-from random import randrange
 from auth.accountManagment import get_current_user
-from misc import schemas, models, logging, db
-import pyotp
+from misc import schemas, models, db
 import auth
 
 app = APIRouter(tags=["Authentication"])
@@ -39,6 +36,8 @@ async def login(
     """Authenticate user and return access token"""
     return await auth.login(credentials, session)
 
+
+
 @app.post("/logout",
           summary="User logout",
           description="Invalidates the current access token")
@@ -59,9 +58,10 @@ async def refresh_token(
 ):
     """Refresh access token using refresh token"""
     return await auth.refresh_token(token, session)
+
+# ======================
 # Password Management
 # ======================
-
 @app.post("/password-reset/initiate",
           summary="Initiate password reset",
           description="Sends password reset instructions to registered email")

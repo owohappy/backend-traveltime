@@ -28,8 +28,10 @@ except FileNotFoundError:
             "senderEmail":""
         },
         "enabled": False
-
+    
     }
 }
+    with open('config.json', 'w') as config_file:
+        json.dump(default_config, config_file, indent=2)
     logging.log("Config file not found", "critical")
 
