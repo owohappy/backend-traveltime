@@ -32,7 +32,7 @@ export default function login() {
         value='Password'
         />
 
-        <Button style={style.loginButton}>
+        <Button style={style.loginButton} onPress={() => router.push('/(tabs)/dashboard')}>
         Login
         </Button>
         <Text style={style.registerTextButton} onPress={() => router.push('/(tabs)/register')}> 
