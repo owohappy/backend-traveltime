@@ -13,7 +13,7 @@ def write_to_file(filename, line_of_text):
         with open(filename, 'a') as file:
             file.write(line_of_text + '\n')
 
-logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d|%H:%M:%S.%f')) + ".txt"
+logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')) + ".txt"
 
 def log(message: str, type:str = "error"):
     '''

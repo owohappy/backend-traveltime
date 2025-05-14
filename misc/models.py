@@ -8,12 +8,13 @@ class User(SQLModel, table=True):
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     email_verified: bool
+    pfp_url: Optional[str] = Field(default=None, max_length=300)
     name: Optional[str] = Field(default=None, max_length=100)
     phonenumber: Optional[str]
     address: Optional[str]
     email_verified_at: Optional[datetime] = Field(default=None)
     mfa: bool = Field(default=False)
-    mfa_secret: str = None
+    mfa_secret: Optional[str] = Field(default=None, max_length=100)
     type: str = Field(default="user")
 
     

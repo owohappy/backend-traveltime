@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from auth.accountManagment import get_current_user
 from misc import schemas, models, db
@@ -45,6 +45,8 @@ async def logout(token: str = Depends(schemas.oauth2_scheme)):
     """Invalidate user's access token"""
     return await auth.logout(token)
 
+
+
 # ======================
 # Token Refresh
 # ======================
@@ -58,6 +60,23 @@ async def refresh_token(
 ):
     """Refresh access token using refresh token"""
     return await auth.refresh_token(token, session)
+
+@app.post("/check-token", 
+            summary="Check token validity",
+            description="Validates the provided access token")
+async def check_token(
+    access_token: str = Query(...),
+    session: Session = Depends(db.get_session)
+):
+    """Check if the provided access token is valid"""
+    try:
+        payload = await auth.check_token(access_token)
+        if not payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        else:
+            return {"valid": True}
+    except HTTPException:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 # ======================
 # Password Management
@@ -96,6 +115,18 @@ async def verify_email(
 ):
     """Verify user's email address"""
     return await auth.verify_email(token, session)
+
+@app.post("/resend-verification",
+          summary="Resend email verification",
+          description="Sends a new verification email to the user")
+async def resend_verification(
+    email: str,
+    session: Session = Depends(db.get_session)
+):
+    """Resend email verification link to user"""
+    return await auth.request_email_verification(email, session)
+
+
 
 # ======================
 # Two-Factor Authentication

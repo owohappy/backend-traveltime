@@ -3,16 +3,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import routes.account
 import routes.auth
-from misc import logging
+from misc import logging, db
 import routes.travel
 import os
+import logging as log
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
 
 cls()
 
-app = FastAPI(version="0.1.0alpha", title="travelpoints API", description="API for travel app", docs_url="/docs", redoc_url="/redoc")
+app = FastAPI(version="0.0.3", title="travelpoints API", description="API for travelpoints app", docs_url="/docs", redoc_url="/redoc")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,9 +22,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+log.getLogger('passlib').setLevel(log.ERROR)
 
 # === Include routes from routes file ===
+try: 
+    db.init_database()
+    logging.log("Database have been loaded", "info")
+except Exception as e:
+    logging.log("Error loading database: " + str(e), "critical")
+    pass
 try:
     app.include_router(routes.auth.app)
     logging.log("Auth routes have been loaded", "info")

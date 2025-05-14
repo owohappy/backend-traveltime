@@ -1,7 +1,8 @@
 # main.py
 from fastapi import APIRouter, Depends, HTTPException, Header
+from sqlmodel import Session
 from auth.accountManagment import get_current_user
-from misc import schemas
+from misc import db, schemas
 from travel import travel
 from misc import logging, config
 import account
@@ -32,12 +33,13 @@ def user_points(user_id: str, current_user: str = Depends(get_current_user)):
             raise HTTPException(status_code=500, detail="Error getting points")
     
 @app.get("/user/{user_id}/getData")
-def user_get_data(user_id: str, token: str = Depends(schemas.Token)):
+def user_get_data(user_id: str, token: str = Depends(schemas.Token), session: Session = Depends(db.get_session)):
     '''
     Allowing users to get their data 
     '''
-    #TODO: Auth
-    return None
+    # get user from DB
+    user = account.user_get_data(user_id,session)
+    return user
 
 @app.post("/user/{user_id}/updateData")
 async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token)):

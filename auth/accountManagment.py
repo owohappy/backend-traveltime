@@ -1,4 +1,5 @@
 # auth.py
+import json
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ import misc
 import random
 from misc import config
 jsonConfig = config.config
+from misc import schemas
 import misc.logging
 # === Password Hashing ===
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -51,12 +53,19 @@ def decode_access_token(token: str):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+
+
+
+
 def is_token_valid(token: str) -> bool:
     try:
         decode_access_token(token)  
         return True  
     except HTTPException:
         return False
+
+
+
 
 # === Current User Dependency ===
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
@@ -77,11 +86,11 @@ def create_verify_token(userid: str):
     return verify
 
 
-def check_verify_token(userid: str, token: str):
+def check_verify_token(token: str):
     now = datetime.now()
     for entry in verifyTokens:
-        if entry["userid"] == userid and entry["verifytoken"] == token:
-            return {"valid": True}
+        if entry["verifytoken"] == token:
+            return {"valid": True, "userid": entry["userid"]}
     return {"valid": False, "reason": "The link can't be found in our database"}
 
 # Token to reset password
