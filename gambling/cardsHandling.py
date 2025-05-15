@@ -38,6 +38,37 @@ def getrandomCard(seed):
     random.seed(seed)
     return random.randint(1, 13)
 
-def checkDealersHand(cardsDealer):
-    #check how much the dealer has 
-    return None
+def checkCardsValue(cards):
+    total = 0
+    aces = 0
+    for card in cards:
+        if card == 1:
+            aces += 1
+        total += card
+    while total > 21 and aces > 0:
+        total -= 10
+        aces -= 1
+    return total
+
+def getCardName(card):
+    if card in cardsMap:
+        return cardsMap[card]
+    else:
+        return "Unknown"
+
+def checkBust(cards):
+    if checkCardsValue(cards) > 21:
+        return True
+    else:
+        return False
+    
+def checkBlackJack(cards):
+    if len(cards) == 2 and checkCardsValue(cards) == 21:
+        return True
+    else:
+        return False
+    
+def hitCard(cards, seed):
+    card = getrandomCard(seed)
+    cards.append(card)
+    return card

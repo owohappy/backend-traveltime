@@ -7,6 +7,7 @@ from misc import logging
 import routes.travel
 import os
 
+
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
 
