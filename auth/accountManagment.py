@@ -47,20 +47,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 def decode_access_token(token: str):
     if token in blacklisted_tokens:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+        return False
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
+        return False
 
 
 
 
 def is_token_valid(token: str) -> bool:
     try:
-        test = decode_access_token(token)  
-        return True  
+        if decode_access_token(token):
+            return True  
+        else:
+            return False
     except HTTPException:
         return False
 
