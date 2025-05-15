@@ -65,18 +65,19 @@ async def refresh_token(
             summary="Check token validity",
             description="Validates the provided access token")
 async def check_token(
-    access_token: str = Query(...),
+    access_token: schemas.Token = Depends(schemas.Token),
     session: Session = Depends(db.get_session)
 ):
     """Check if the provided access token is valid"""
     try:
-        payload = await auth.check_token(access_token)
+        print(access_token.access_token)
+        payload = await auth.check_token(access_token.access_token)
         if not payload:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         else:
             return {"valid": True}
-    except HTTPException:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except Exception as e:
+            return {"valid": False, "error": str(e)}
 
 # ======================
 # Password Management

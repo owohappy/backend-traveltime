@@ -78,7 +78,7 @@ async def register(
         session.commit()
         
         # Generate tokens
-        access_token = create_access_token({"sub": new_user.id})
+        access_token = create_access_token({"sub": str(new_user.id) + str("a")})
         verification_token = create_verify_token(new_user.email)
 
         # Send verification email
@@ -117,10 +117,10 @@ async def login(
             )
 
         if user[0].mfa:
-            temp_token = create_temp_token({"sub": user[0].id})
+            temp_token = create_temp_token({"sub": user[0].email + str("a")})
             return {"temp_token": temp_token, "mfa_required": True}
-
-        access_token = create_access_token({"sub": user[0].id})
+        print(str(user[0].email))
+        access_token = create_access_token({"sub": str(user[0].email)})
         loginresponse = {
             "access_token": access_token,
             "token_type": "bearer",

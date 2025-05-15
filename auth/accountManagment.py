@@ -26,8 +26,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # === JWT Handling ===
 SECRET_KEY = jsonConfig['app']['jwtSecretKey']
 if SECRET_KEY == "":
-    SECRET_KEY = "your_super_secret_key_here"  # Default value if not set in config
-ALGORITHM = "HS256"
+    SECRET_KEY: str = "your_super_secret_key_here"  # Default value if not set in config
+ALGORITHM: str = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 blacklisted_tokens = set()  
@@ -59,7 +59,9 @@ def decode_access_token(token: str):
 
 def is_token_valid(token: str) -> bool:
     try:
-        decode_access_token(token)  
+        print(token)
+        test = decode_access_token(token)  
+        print(str(test))
         return True  
     except HTTPException:
         return False
