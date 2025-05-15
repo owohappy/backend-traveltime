@@ -59,9 +59,7 @@ def decode_access_token(token: str):
 
 def is_token_valid(token: str) -> bool:
     try:
-        print(token)
         test = decode_access_token(token)  
-        print(str(test))
         return True  
     except HTTPException:
         return False

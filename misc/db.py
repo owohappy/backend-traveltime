@@ -60,4 +60,4 @@ def get_session():
         raise RuntimeError(error_msg)
     
     with Session(engine) as session:
-        yield session
+        return session

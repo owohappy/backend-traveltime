@@ -119,14 +119,12 @@ async def login(
         if user[0].mfa:
             temp_token = create_temp_token({"sub": user[0].email + str("a")})
             return {"temp_token": temp_token, "mfa_required": True}
-        print(str(user[0].email))
         access_token = create_access_token({"sub": str(user[0].email)})
         loginresponse = {
             "access_token": access_token,
             "token_type": "bearer",
             "userID": user[0].id
         }
-        print(loginresponse)
         return loginresponse
 
     except Exception as e:
@@ -288,10 +286,7 @@ async def check_token(token: str, session: Session = Depends(db.get_session)):
             return False
         
         decoded_token = decode_access_token(token)
-        user_id = decoded_token.get("sub")
-        user = get_db_user(user_id, session)
-        
-        return {"user": user}
+        return True
 
     except Exception as e:
         logging.log(f"Token check error: {str(e)}", "error")
