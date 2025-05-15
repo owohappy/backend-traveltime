@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 from auth.accountManagment import get_current_user
 from misc import schemas, models, db
@@ -65,15 +65,17 @@ async def refresh_token(
             summary="Check token validity",
             description="Validates the provided access token")
 async def check_token(
+    response: Response,
     access_token: schemas.Token = Depends(schemas.Token),
     session: Session = Depends(db.get_session)
 ):
     """Check if the provided access token is valid"""
     try:
         payload = await auth.check_token(access_token.access_token)
-        
+
         if not payload:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return {"valid": False, "error": "Token not found"}
         else:
             return {"valid": True}
     except Exception as e:
