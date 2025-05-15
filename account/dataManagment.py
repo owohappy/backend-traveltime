@@ -3,10 +3,17 @@ from sqlmodel import Session, select
 from fastapi import HTTPException, status
 
 def get_user_data(user_id: str, session: Session):
+    points: int = 0
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
         logging.log(f"User {user_id} not found", "warning")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    if user.points is not None:
+        points = user.points
+
+
+    
     # Return user data except sensitive fields
     return {
         "id": user.id,
@@ -18,6 +25,9 @@ def get_user_data(user_id: str, session: Session):
         "created_at": user.created_at,
         "email_verified_at": user.email_verified_at,
         "mfa": user.mfa,
+        "pfp_url": user.pfp_url,
+        "points": points,
+        
     }
 
 def update_user_data(user_id: str, field: str, data: str, session: Session):
