@@ -58,6 +58,96 @@ def startGame(userID, betAmount):
     
 
 def continueGame(gameID: int, move: str):
-    {
+    if move not in ["hit", "stand"]:
+        return jsonify({"error": "Invalid move"}), 400
+    if gameID not in games:
+        return jsonify({"error": "Game not found"}), 404
+    game = games[gameID]
+    userID = game["userID"]
+    playerCards = game["playerCards"]
+    dealerCards = game["dealerCards"]
+    seed = game["seed"]
+
+    if move == "hit":
+        playerCards.append(cardsHandling.getrandomCard(seed))
+        if cardsHandling.checkBlackJack(playerCards):
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet * cardsHandling.payoutOnBJ, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "blackjack": True
+            })
+        elif cardsHandling.checkBust(playerCards):
+            db.execute("UPDATE users SET points = points - ? WHERE userID = ?", (config.minBet, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "bust": True
+            })
+        else:
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                }
+            })
+    elif move == "stand":
+        while cardsHandling.getHandValue(dealerCards) < 17:
+            dealerCards.append(cardsHandling.getrandomCard(seed))
+        if cardsHandling.checkBust(dealerCards):
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet * cardsHandling.payoutOnWin, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "win": True
+            })
+        elif cardsHandling.getHandValue(dealerCards) > cardsHandling.getHandValue(playerCards):
+            db.execute("UPDATE users SET points = points - ? WHERE userID = ?", (config.minBet, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "lose": True
+            })
+        elif cardsHandling.getHandValue(dealerCards) == cardsHandling.getHandValue(playerCards):
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "draw": True
+            })
+        else:
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet * cardsHandling.payoutOnWin, userID))
+            db.commit()
+            return jsonify({
+                "gameID": gameID,
+                "cards": {
+                    "playerCards": playerCards,
+                    "dealerCards": dealerCards
+                },
+                "win": True
+            })
+    else:
+        return jsonify({"error": "Invalid move"}), 400
         
-    }
+    
