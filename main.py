@@ -8,6 +8,7 @@ import routes.travel
 import os
 import logging as log
 
+
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
 
