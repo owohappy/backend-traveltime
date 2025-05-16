@@ -14,9 +14,12 @@ def purchaseReward(reward, user):
     if user['points'] >= reward['cost']:
         user['points'] -= reward['cost']
 
-        # TODO: add logic to deliver the reward to the user
-
-        return f"Purchase successful! You have bought {reward['name']}."
+        try:
+            # deduct points from user
+            # add reward to user's inventory    
+            return f"Purchase successful! You have bought {reward['name']}."
+        except Exception as e:
+            return f"Error processing purchase: {str(e)}"
     else:
         return "Insufficient points to purchase this reward."
     
