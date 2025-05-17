@@ -18,11 +18,26 @@ class User(SQLModel, table=True):
     type: str = Field(default="user")
     points: int = Field(default=0)
     updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+    xp: int = Field(default=0)
+    level: int = Field(default=0)
     
 
-class Reward(SQLModel, table=True):
-    name: str = Field(max_length=100)
-    description: str = Field(max_length=1000)
+class UserPoints(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
     points: int
-    id: int = Field(default=None, primary_key=True)
-    issuer: str = Field(max_length=100)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+
+class TravelHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    startLatitude: float
+    listLatitude: list
+    startLongitude: float
+    listLongitude: list
+    distance: float
+    duration: float
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    

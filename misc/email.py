@@ -16,13 +16,13 @@ _DEFAULT_CIPHERS = (
 
 # --- Configuration ---
 jsonConfig = config.config
-emailEnabled = jsonConfig['email']['enabled']
-baseURL = jsonConfig['app']['baseURL']
-smtp_ser = jsonConfig['email']['smtp']['host']
-smtp_port = jsonConfig['email']['smtp']['port']
-username = jsonConfig['email']['smtp']['username']
-password = jsonConfig['email']['smtp']['password']
-sender_email = jsonConfig['email']['smtp']['senderEmail']
+emailEnabled: bool = jsonConfig['email']['enabled']
+baseURL: str = jsonConfig['app']['baseURL']
+smtp_ser: str = jsonConfig['email']['smtp']['host']
+smtp_port: int = jsonConfig['email']['smtp']['port']
+username: str = jsonConfig['email']['smtp']['username']
+password:str = jsonConfig['email']['smtp']['password']
+sender_email: str = jsonConfig['email']['smtp']['senderEmail']
 
 
 global server

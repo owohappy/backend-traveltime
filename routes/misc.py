@@ -10,7 +10,7 @@ def get_users_count(session: Session = Depends(db.get_session)):
     Returns the total number of registered users.
     """
     try:
-        count = session.exec(select(models.User)).count()
+        count = session.exec(select(models.User)).count() # type: ignore
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error counting users")
     if count is None:

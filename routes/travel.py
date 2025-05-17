@@ -19,31 +19,13 @@ async def heartbeat(user_id: str, ping: schemas.LocationPing, request: Request):
     '''
     #get headers with auth token
     headers = request.headers
-    auth = headers.get("Authorization")
+    auth: str = str(headers.get("Authorization"))
     if is_token_valid(auth):
         try:
-            print(travel.gpsinput(user_id, ping.latitude, ping.longitude,))
+            travel.gpsinput(user_id, ping.latitude, ping.longitude)
             return {"succsess": True}
         except:
             return {"error": "server error"}
     else: 
         return {"error":"Invalid JWT"}
     
-@app.post("/user/{user_id}/confirm_travel/{travel_id}")
-def confirm_travel(user_id: str, travel_id: str, request: Request):
-    '''
-    Used to confirm the travle with some form of proof(TODO)
-    '''
-    #get headers with auth token
-    headers = request.headers
-    auth = headers.get("Authorization")
-    if is_token_valid(auth):
-        try:
-            travel.confirm_travel(user_id, travel_id)
-            return {"success": True}
-        except:
-            return {"error": "server error"}
-    else: 
-        return {"error":"Invalid JWT"}    
-
-
