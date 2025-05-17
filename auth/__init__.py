@@ -33,7 +33,7 @@ DB_NAME = jsonConfig['app']['nameDB']
 
 def get_db_user(user_id: int, session: Session) -> models.User:
     """Retrieve user from database with error handling"""
-    user = session.exec(select(models.User).where(models.User.id == user_id)).first()
+    user = session.exec(select(models.User).where(models.User.id == user_id)).first() # type: ignore
     if not user:
         logging.log(f"User {user_id} not found", "warning")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -51,7 +51,8 @@ async def register(
     """Register a new user in the system"""
     try:
         # Check for existing user
-        if session.exec(select(models.User).where(models.User.email == user.email)).first():
+        existing_user = session.exec(select(models.User).where(models.User.email == user.email)).first() # type: ignore
+        if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
@@ -59,7 +60,7 @@ async def register(
 
         # Generate unique user ID
         user_id = randrange(100000000, 999999999)
-        while session.exec(select(models.User).where(models.User.id == user_id)).first():
+        while session.exec(select(models.User).where(models.User.id == user_id)).first(): # type: ignore
             user_id = randrange(100000000, 999999999)
 
         # Create new user object
@@ -208,7 +209,7 @@ async def verify_email(
         if not jsonTokenResponse["valid"]:
             return jsonable_encoder(jsonTokenResponse)
         
-        user = session.exec(select(models.User).where(models.User.email == jsonTokenResponse['userid'])).first()
+        user = session.exec(select(models.User).where(models.User.email == jsonTokenResponse['userid'])).first() # type: ignore
 
         if not user:
             raise HTTPException(
@@ -216,7 +217,7 @@ async def verify_email(
                 detail="User not found"
             )
 
-        email = session.exec(select(models.User.email)
+        email = session.exec(select(str(models.User.email))  # type: ignore
                             .where(models.User.email == jsonTokenResponse['userid'])).first()
         
         if not email:
@@ -228,7 +229,7 @@ async def verify_email(
 
 
         session.exec(update(models.User)
-                    .where(models.User.email == str(email))
+                    .where(models.User.email == str(email)) # type: ignore
                     .values(email_verified=True))
         session.commit()
         
