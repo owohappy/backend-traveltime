@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import routes.account
 import routes.auth
+import routes.misc
 from misc import logging, db
 import routes.travel
 import os
@@ -46,6 +47,13 @@ except Exception as e:
     pass
 try:
     app.include_router(routes.travel.app)
+    logging.log("Travel routes have been loaded", "info")
+except Exception as e:
+    logging.log("Error loading travel routes: " + str(e), "critical")
+    pass
+
+try:
+    app.include_router(routes.misc.app)
     logging.log("Travel routes have been loaded", "info")
 except Exception as e:
     logging.log("Error loading travel routes: " + str(e), "critical")
