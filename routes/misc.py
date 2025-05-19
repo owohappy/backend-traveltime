@@ -22,14 +22,15 @@ def get_leaderboard(session: Session = Depends(db.get_session)):
     """
     Returns the leaderboard sorted by XP in descending order.
     """
+    types = None
     try:
-        if type == "total" or type is None:
+        if types == "total" or types is None:
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all() # type: ignore
-        elif type == "daily":
+        elif types == "daily":
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all()
-        elif type == "weekly":
+        elif types == "weekly":
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursWeekly))).all()
-        elif type == "monthly":
+        elif types == "monthly":
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursMonthly))).all()
         else:
             raise HTTPException(status_code=400, detail="Invalid type parameter")
