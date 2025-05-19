@@ -57,16 +57,32 @@ with open("misc/templates/emailVerify.html", "r", encoding="utf-8") as f:
 with open("misc/templates/passwordReset.html", "r", encoding="utf-8") as f:
     html_template2 = f.read()
 
-def sendEmail(user_id, subject, html, server):
-    part = MIMEText(html, "html")
-    msg = MIMEMultipart("alternative")
-    msg["From"] = sender_email
-    msg["To"] = user_id
-    msg["Subject"] = subject
-    msg.attach(part)
-    server.send_message(msg, from_addr="roeder.lucas@proton.me")
-    print("Email sent!")
-    
+def sendEmail(user_id, subject, html, server=None):
+    """Send an email with proper error handling"""
+    if not emailEnabled:
+        logging.log(f"Email sending disabled. Would send to {user_id}: {subject}", "info")
+        return
+        
+    try:
+        part = MIMEText(html, "html")
+        msg = MIMEMultipart("alternative")
+        msg["From"] = sender_email
+        msg["To"] = user_id
+        msg["Subject"] = subject
+        msg.attach(part)
+        
+        if server is None:
+            context = ssl._create_unverified_context()
+            with smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context) as temp_server:
+                temp_server.login(username, password)
+                temp_server.send_message(msg)
+        else:
+            server.send_message(msg)
+            
+        logging.log(f"Email sent to {user_id}", "info")
+    except Exception as e:
+        logging.log(f"Failed to send email: {str(e)}", "error")
+
 def sendVerifyEmail(user_id: str, verify: str):
     url = f"{baseURL}/user/{user_id}/verify/{verify}"
     html_content = html_template.replace("{{URL}}", url)

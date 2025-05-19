@@ -8,11 +8,11 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True, max_length=320)  # 320 is max per spec
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    email_verified: bool
+    email_verified: bool = Field(default=False)
     pfp_url: Optional[str] = Field(default=None, max_length=300)
     name: Optional[str] = Field(default=None, max_length=100)
-    phonenumber: Optional[str]
-    address: Optional[str]
+    phonenumber: Optional[str] = Field(default=None)
+    address: Optional[str] = Field(default=None)
     email_verified_at: Optional[datetime] = Field(default=None)
     mfa: bool = Field(default=False)
     mfa_secret: Optional[str] = Field(default=None, max_length=100)
