@@ -1,6 +1,7 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import SQLModel, Field, Column
+from typing import List, Optional
 from datetime import datetime 
+from sqlalchemy.dialects.sqlite import JSON
 # === Database Model ===
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -22,22 +23,25 @@ class User(SQLModel, table=True):
     level: int = Field(default=0)
     
 
-class UserPoints(SQLModel, table=True):
+class UserHours(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
-    points: int
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+    hoursTotal: float = Field(default=0)
+    hoursWeekly: float = Field(default=0)
+    hoursMonthly: float = Field(default=0)
+    hoursDaily: float = Field(default=0)
+
+
 
 class TravelHistory(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     startLatitude: float
-    listLatitude: list
+    # Store lists as JSON instead of raw list
+    listLatitude: Optional[List[float]] = Field(sa_column=Column(JSON))
     startLongitude: float
-    listLongitude: list
+    listLongitude: Optional[List[float]] = Field(sa_column=Column(JSON))
     distance: float
     duration: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    

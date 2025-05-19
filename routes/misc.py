@@ -17,40 +17,27 @@ def get_users_count(session: Session = Depends(db.get_session)):
         raise HTTPException(status_code=404, detail="No users found")
     return {"users_count": count}
 
-@app.get("/stats/points_total")
-def get_points_total(session: Session = Depends(db.get_session)):
-    """
-    Returns the total amount of points earned by all users.
-    """
-    try:
-        total = session.exec(select(models.UserPoints)).all()
-        points_sum = sum(up.points for up in total)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error calculating total points")
-    if points_sum is None:
-        raise HTTPException(status_code=404, detail="No points found")
-    return {"points_total": points_sum}
-
 @app.get("/stats/leaderboard")
 def get_leaderboard(session: Session = Depends(db.get_session)):
     """
-    Returns a leaderboard of the top 10 members by points.
+    Returns the leaderboard sorted by XP in descending order.
     """
-    statement = select(models.UserPoints).order_by(desc(models.UserPoints.points)).limit(10)
-    top_points = session.exec(statement).all()
-    leaderboard = []
-    # Check if there are any users with points already exsisting
-    if not top_points:
-        raise HTTPException(status_code=404, detail="No points found")
-    
-    for entry in top_points:
-        user = session.exec(select(models.User).where(models.User.id == entry.user_id)).first()
-        leaderboard.append({
-            "user_id": entry.user_id,
-            "email": user.email if user else None,
-            "points": entry.points
-        })
-    return leaderboard
+    try:
+        if type == "total":
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all() # type: ignore
+        elif type == "daily":
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all()
+        elif type == "weekly":
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursWeekly))).all()
+        elif type == "monthly":
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursMonthly))).all()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid type parameter")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching leaderboard")
+    if not leaderboard:
+        raise HTTPException(status_code=404, detail="No users found")
+    return {"leaderboard": [user.dict() for user in leaderboard]}
 
 @app.get("/ping")
 def ping():
