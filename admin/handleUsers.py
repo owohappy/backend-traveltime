@@ -13,13 +13,19 @@ def deleteUser(user_id):
     Deletes a user from the system if their class is 2.
     """
     global users
-    for user in users:
-        if user["id"] == user_id and user.get("class") == 2:
-            users.remove(user)
-            logging.info(f"User {user_id} deleted.")
-            return True
-    logging.warning(f"User {user_id} not found or not class 2.")
-    return False
+    user_to_delete = None
+    for user_in_list in users:
+        if user_in_list["id"] == user_id and user_in_list.get("class") == 2:
+            user_to_delete = user_in_list
+            break  # Found the user, no need to continue iterating
+    
+    if user_to_delete:
+        users.remove(user_to_delete)
+        logging.log(message=f"User {user_id} deleted.", type="info")
+        return True
+    else:
+        logging.log(message=f"User {user_id} not found or not class 2.", type="warning")
+        return False
 
 def updateUser(user_id, **kwargs):
     """
@@ -28,9 +34,9 @@ def updateUser(user_id, **kwargs):
     for user in users:
         if user["id"] == user_id and user.get("class") == 2:
             user.update(kwargs)
-            logging.info(f"User {user_id} updated.")
+            logging.log(message=f"User {user_id} updated.", type="info")
             return True
-    logging.warning(f"User {user_id} not found or not class 2.")
+    logging.log(message=f"User {user_id} not found or not class 2.", type="warning")
     return False
 
 def getUser(user_id):

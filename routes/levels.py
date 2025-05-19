@@ -21,6 +21,8 @@ def get_xp(userID: int, session: Session = Depends(db.get_session)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting XP: {str(e)}")
 
+
+
 @app.get("/level/{userID}")
 def get_level(userID: int, session: Session = Depends(db.get_session)):
     """
