@@ -23,7 +23,7 @@ def get_leaderboard(session: Session = Depends(db.get_session)):
     Returns the leaderboard sorted by XP in descending order.
     """
     try:
-        if type == "total":
+        if type == "total" or type is None:
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all() # type: ignore
         elif type == "daily":
             leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all()
