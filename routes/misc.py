@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, desc
-from misc import db, models
+from misc import db, models, logging
 
 app = APIRouter(tags=["misc"])
 
@@ -34,6 +34,7 @@ def get_leaderboard(session: Session = Depends(db.get_session)):
         else:
             raise HTTPException(status_code=400, detail="Invalid type parameter")
     except Exception as e:
+        logging.log("Error fetching leaderboard: " + str(e), "error")
         raise HTTPException(status_code=500, detail=f"Error fetching leaderboard")
     if not leaderboard:
         raise HTTPException(status_code=404, detail="No users found")
