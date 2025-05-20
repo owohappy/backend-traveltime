@@ -44,3 +44,40 @@ def update_user_data(user_id: str, field: str, data: str, session: Session):
     session.commit()
     session.refresh(user)
     return {"success": True, "updated_field": field, "new_value": data}
+
+def get_user_data_hours(user_id: str, session: Session):
+    user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first()
+    if not user_hours:
+        logging.log(f"User {user_id} not found", "warning")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    return {
+        "id": user_hours.id,
+        "user_id": user_hours.user_id,
+        "hours": {
+            "hoursTotal": user_hours.hoursTotal,
+            "hoursWeekly": user_hours.hoursWeekly,
+            "hoursMonthly": user_hours.hoursMonthly,
+            "hoursDaily": user_hours.hoursDaily    
+        },
+        "transport": {
+            "bus": {
+                "hoursTotal": user_hours.hoursTotal,
+                "hoursWeekly": user_hours.hoursWeekly,
+                "hoursMonthly": user_hours.hoursMonthly,
+                "hoursDaily": user_hours.hoursDaily    
+            },
+            "train": {
+                "hoursTotal": user_hours.hoursTotal,
+                "hoursWeekly": user_hours.hoursWeekly,
+                "hoursMonthly": user_hours.hoursMonthly,
+                "hoursDaily": user_hours.hoursDaily    
+            },
+            "fairy": {
+                "hoursTotal": user_hours.hoursTotal,
+                "hoursWeekly": user_hours.hoursWeekly,
+                "hoursMonthly": user_hours.hoursMonthly,
+                "hoursDaily": user_hours.hoursDaily    
+            },
+        }
+    }

@@ -18,3 +18,12 @@ async def user_update_data(
     Allowing users to update their info using the field and data headers
     '''
     return dataManagment.update_user_data(user_id, field, data, session)
+
+async def user_get_data_hours(
+    user_id: str,
+    session=Depends(db.get_session)
+):
+    '''
+    Allowing users to get their data 
+    '''
+    return dataManagment.get_user_data_hours(user_id, session)

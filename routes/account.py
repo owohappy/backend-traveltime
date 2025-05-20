@@ -41,6 +41,15 @@ def user_get_data(user_id: str, token: str = Depends(schemas.Token), session: Se
     user = account.user_get_data(user_id,session)
     return user
 
+@app.get("/user/{user_id}/getDataHours")
+def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), session: Session = Depends(db.get_session)):
+    '''
+    Allowing users to get their data 
+    '''
+    # get user from DB
+    user = account.user_get_data_hours(user_id,session)
+    return user
+
 @app.post("/user/{user_id}/updateData")
 async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token)):
     '''

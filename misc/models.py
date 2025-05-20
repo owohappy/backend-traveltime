@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field, Column
 from typing import List, Optional
 from datetime import datetime 
 from sqlalchemy.dialects.sqlite import JSON
+
 # === Database Model ===
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -22,15 +23,32 @@ class User(SQLModel, table=True):
     xp: int = Field(default=0)
     level: int = Field(default=0)
     
-
-class UserHours(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
-    hoursTotal: float = Field(default=0)
-    hoursWeekly: float = Field(default=0)
-    hoursMonthly: float = Field(default=0)
-    hoursDaily: float = Field(default=0)
-
+    class UserHours(SQLModel, table=True):
+        id: Optional[int] = Field(default=None, primary_key=True)
+        user_id: int = Field(foreign_key="user.id")
+        # General hours
+        hoursTotal: float = Field(default=0)
+        hoursWeekly: float = Field(default=0)
+        hoursMonthly: float = Field(default=0)
+        hoursDaily: float = Field(default=0)
+        
+        # Bus transport hours
+        bus_hoursTotal: float = Field(default=0)
+        bus_hoursWeekly: float = Field(default=0)
+        bus_hoursMonthly: float = Field(default=0)
+        bus_hoursDaily: float = Field(default=0)
+        
+        # Train transport hours
+        train_hoursTotal: float = Field(default=0)
+        train_hoursWeekly: float = Field(default=0)
+        train_hoursMonthly: float = Field(default=0)
+        train_hoursDaily: float = Field(default=0)
+        
+        # Ferry transport hours
+        ferry_hoursTotal: float = Field(default=0)
+        ferry_hoursWeekly: float = Field(default=0)
+        ferry_hoursMonthly: float = Field(default=0)
+        ferry_hoursDaily: float = Field(default=0)
 
 
 class TravelHistory(SQLModel, table=True):
