@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
-from travel import travel
+from . import travel
 from misc import logging, config
 import account
 
