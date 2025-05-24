@@ -24,7 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 # === JWT Handling ===
-SECRET_KEY = jsonConfig['app']['jwtSecretKey']
+SECRET_KEY = jsonConfig['app']['jwtSecretKey'] # type: ignore
 if SECRET_KEY == "":
     SECRET_KEY: str = "your_super_secret_key_here"  # Default value if not set in config
 ALGORITHM: str = "HS256"
@@ -74,7 +74,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     payload = decode_access_token(token)
-    return payload.get("sub")
+    return payload.get("sub") # type: ignore
 
 def blacklist_token(token: str):
     blacklisted_tokens.add(token)

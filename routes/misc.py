@@ -27,13 +27,13 @@ def get_leaderboard(types: Optional[str] = None, session: Session = Depends(db.g
     """
     try:
         if types == "total" or types is None:
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all()
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all() # type: ignore
         elif types == "daily":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all()
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all() # type: ignore
         elif types == "weekly":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursWeekly))).all()
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursWeekly))).all() # type: ignore
         elif types == "monthly":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursMonthly))).all()
+            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursMonthly))).all() # type: ignore
         else:
             raise HTTPException(status_code=400, detail="Invalid type parameter")
     except Exception as e:

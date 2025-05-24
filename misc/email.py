@@ -46,7 +46,7 @@ if (username == "" or password == "" or sender_email == "" or smtp_port == "" or
 
 if emailEnabled:
     context = ssl._create_unverified_context()
-    server = smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context)
+    server = smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context) # type: ignore
     server.login(username, password)
 
 

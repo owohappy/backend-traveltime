@@ -56,4 +56,4 @@ async def user_update_data(user_id: str, field: str = Header(...), data: str = H
     Allowing users to update their info using the field and data headers
     '''
     #TODO: Auth
-    return await account.process_headers(user_id, field, data, token)
+    return await account.process_headers(user_id, field, data, token) # type: ignore

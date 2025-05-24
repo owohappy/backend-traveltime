@@ -8,25 +8,25 @@ games = {}
 ## TODO: make secure against sql injection
 
 def startGame(userID, betAmount):
-    db.execute("SELECT * FROM users WHERE userID = ?", (userID,))
-    user = db.fetchone()
+    db.execute("SELECT * FROM users WHERE userID = ?", (userID,)) # type: ignore
+    user = db.fetchone() # type: ignore
     if not user:
         return jsonify({"error": "User not found"}), 404
     if user['points'] < betAmount:
         return jsonify({"error": "Not enough points"}), 400
     else:
-        db.execute("UPDATE users SET points = points - ? WHERE userID = ?", (betAmount, userID))
-        db.commit()
+        db.execute("UPDATE users SET points = points - ? WHERE userID = ?", (betAmount, userID)) # type: ignore
+        db.commit() # type: ignore
     try:
         gameID = str(uuid.uuid4())
         seed = ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=48))
-        hashedSeed = cardsHandling.hashSeed(seed)
-        playerCard = [cardsHandling.getrandomCard(seed), cardsHandling.getrandomCard(seed)]
-        dealerCard = [cardsHandling.getrandomCard(seed), cardsHandling.getrandomCard(seed)]
+        hashedSeed = cardsHandling.hashSeed(seed) # type: ignore
+        playerCard = [cardsHandling.getrandomCard(seed), cardsHandling.getrandomCard(seed)] # type: ignore
+        dealerCard = [cardsHandling.getrandomCard(seed), cardsHandling.getrandomCard(seed)] # type: ignore
 
-        if cardsHandling.checkBlackJack(playerCard):
-            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (betAmount * cardsHandling.payoutOnBJ, userID))
-            db.commit()
+        if cardsHandling.checkBlackJack(playerCard): # type: ignore
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (betAmount * cardsHandling.payoutOnBJ, userID)) # type: ignore
+            db.commit() # type: ignore
             return jsonify({
                 "gameID": gameID,
                 "cards": {
@@ -37,9 +37,9 @@ def startGame(userID, betAmount):
                 "blackjack": True
             })
         
-        if cardsHandling.checkBlackJack(dealerCard):
-            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (betAmount * cardsHandling.payoutOnBJ, userID))
-            db.commit()
+        if cardsHandling.checkBlackJack(dealerCard): # type: ignore
+            db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (betAmount * cardsHandling.payoutOnBJ, userID)) # type: ignore
+            db.commit() # type: ignore
             return jsonify({
                 "gameID": gameID,
                 "cards": {
@@ -69,8 +69,8 @@ def startGame(userID, betAmount):
             "seed": hashedSeed
         })
     except Exception as e:
-        db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet, userID))
-        db.commit()
+        db.execute("UPDATE users SET points = points + ? WHERE userID = ?", (config.minBet, userID)) # type: ignore
+        db.commit() # type: ignore
         return jsonify({"error": str(e)}), 500
     
 

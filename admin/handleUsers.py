@@ -13,10 +13,10 @@ def deleteUser(user_id):
     Deletes a user from the system if their class is 2.
     """
     global users
-Meister1304
-Mefwefwefwefwefuser_to_delete = None
+
+    user_to_delete = None
     for user_in_list in users:
-        if user_in_list["id"] == user_id and user_in_list.get("class") == 2:
+        if user_in_list["id"] == user_id and user_in_list.get("class") == 2: # type: ignore
             user_to_delete = user_in_list
             break  # Found the user, no need to continue iterating
     

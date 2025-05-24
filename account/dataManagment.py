@@ -46,7 +46,7 @@ def update_user_data(user_id: str, field: str, data: str, session: Session):
     return {"success": True, "updated_field": field, "new_value": data}
 
 def get_user_data_hours(user_id: str, session: Session):
-    user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first()
+    user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first() # type: ignore
     if not user_hours:
         logging.log(f"User {user_id} not found", "warning")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

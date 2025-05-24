@@ -84,7 +84,7 @@ async def register(
 
         # Send verification email
         if not DEBUG:
-            email.sendVerfyEmail(new_user.email, verification_token)
+            email.sendVerfyEmail(new_user.email, verification_token) # type: ignore
         else:
             logging.log(f"Verification URL: {BASE_URL}/verify-email/{verification_token}", "debug")
 
@@ -109,7 +109,7 @@ async def login(
     """Authenticate user and return access token"""
     try:
         user = session.exec(select(models.User)
-                          .where(models.User.email == credentials.email)).first()
+                          .where(models.User.email == credentials.email)).first() # type: ignore
         if not user or not verify_password(credentials.password, user[0].hashed_password):
             logging.log(f"Failed login attempt for {credentials.email}", "warning")
             raise HTTPException(
@@ -118,7 +118,7 @@ async def login(
             )
 
         if user[0].mfa:
-            temp_token = create_temp_token({"sub": user[0].email + str("a")})
+            temp_token = create_temp_token({"sub": user[0].email + str("a")}) # type: ignore
             return {"temp_token": temp_token, "mfa_required": True}
         access_token = create_access_token({"sub": str(user[0].email)})
         loginresponse = {
@@ -161,7 +161,7 @@ async def initiate_password_reset(
 ):
     """Initiate password reset process"""
     try:
-        user = session.exec(select(models.User).where(models.User.email == email)).first()
+        user = session.exec(select(models.User).where(models.User.email == email)).first() # type: ignore
         if not user:
             return  # Prevent email enumeration
         
@@ -169,7 +169,7 @@ async def initiate_password_reset(
         reset_url = f"{BASE_URL}/reset-password/{reset_token}"
         
         if not DEBUG:
-            email.sendPasswordResetEmail(user.email, reset_url)
+            email.sendPasswordResetEmail(user.email, reset_url) # type: ignore
         else:
             logging.log(f"Password reset URL: {reset_url}", "debug")
             
@@ -250,7 +250,7 @@ async def request_email_verification(
 ):
     """Request email verification for the current user"""
     try:
-        current_user = session.exec(select(models.User).where(models.User.email == email)).first()
+        current_user = session.exec(select(models.User).where(models.User.email == email)).first() # type: ignore
         if not current_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -267,7 +267,7 @@ async def request_email_verification(
         verification_url = f"{BASE_URL}/verify-email/{verification_token}"
 
         if not DEBUG:
-            email.sendVerfyEmail(current_user.email, verification_url)
+            email.sendVerfyEmail(current_user.email, verification_url) # type: ignore
         else:
             logging.log(f"Verification URL: {verification_url}", "debug")
 
@@ -306,7 +306,7 @@ async def enable_2fa(
         # Generate MFA secret
         mfa_secret = pyotp.random_base32()
         session.exec(update(models.User)
-                    .where(models.User.id == current_user.id)
+                    .where(models.User.id == current_user.id) # type: ignore
                     .values(mfa_secret=mfa_secret))
         session.commit()
         
