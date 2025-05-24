@@ -71,3 +71,27 @@ class PasswordResetToken(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime = Field(default_factory=lambda: datetime.utcnow().replace(hour=23, minute=59, second=59))
     used: bool = Field(default=False)  # Track if the token has been used
+
+class MFAToken(SQLModel, table=True):
+    """Table for storing MFA tokens"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    token: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime
+    used: bool = Field(default=False)
+
+class TempToken(SQLModel, table=True):
+    """Table for storing temporary tokens (e.g., for MFA process)"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    token: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime
+    used: bool = Field(default=False)
+
+class TokenRevocation(SQLModel, table=True):
+    """Table for storing token revocation information"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    revocation_time: datetime

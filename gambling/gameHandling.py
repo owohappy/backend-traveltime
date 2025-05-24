@@ -3,6 +3,9 @@ import random
 from flask import jsonify
 import uuid
 from misc import db, config
+from sqlmodel import Session, select
+from misc import models, db, logging
+
 games = {}
 
 def startGame(userID, betAmount):
@@ -99,3 +102,42 @@ def continueGame(gameID: str, move: str):
             pass
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def place_bet(user_id: int, game_id: int, amount: float, bet_on: str, session: Session) -> bool:
+    """
+    Place a bet in a secure way, protected against SQL injection
+    """
+    try:
+        # Use parameterized queries via SQLModel to prevent SQL injection
+        user = session.exec(select(models.User).where(models.User.id == user_id)).first()
+        game = session.exec(select(models.Game).where(models.Game.id == game_id)).first() # type: ignore
+        
+        if not user or not game:
+            return False
+            
+        if user.balance < amount:
+            return False
+            
+        # Create bet record using ORM
+        new_bet = models.Bet( # type: ignore
+            user_id=user_id,
+            game_id=game_id,
+            amount=amount,
+            bet_on=bet_on
+        )
+        
+        # Update user balance
+        user.balance -= amount
+        
+        # Commit changes
+        session.add(new_bet)
+        session.commit()
+        
+        return True
+        
+    except Exception as e:
+        session.rollback()
+        logging.log(f"Error placing bet: {str(e)}", "error")
+
+        return False        

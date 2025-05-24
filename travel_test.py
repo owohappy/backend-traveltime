@@ -117,8 +117,6 @@ class TestTravelFunctions(unittest.TestCase):
         
         mock_file.assert_called_once_with("cached_routes.json", "w")
         handle = mock_file()
-        # handle.write.assert_called_once() # REMOVE THIS LINE
-
         # Correctly get all written content
         written_content = "".join(call_arg[0] for call_arg_list in handle.write.call_args_list for call_arg in call_arg_list)
         
@@ -251,7 +249,7 @@ class TestTravelFunctions(unittest.TestCase):
         
         print(f"GPS input for test_user at (52.5200, 13.4050): {result}")
         self.assertTrue(result)
-        mock_is_on_route.assert_called_once_with(52.5200, 13.4050, unittest.mock.ANY)
+        mock_is_on_route.assert_called_once_with(52.5200, 13.4050, unittest.mock.ANY) # type: ignore
 
 if __name__ == '__main__':
     print("=== Starting Travel module tests ===")

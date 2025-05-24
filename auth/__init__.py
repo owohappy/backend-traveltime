@@ -1,4 +1,5 @@
 # All Functions
+from datetime import datetime
 import json
 from random import randrange
 from fastapi import Depends, HTTPException, status
@@ -138,14 +139,20 @@ async def login(
 async def logout(token: str = Depends(schemas.oauth2_scheme)):
     """Invalidate user's access token"""
     try:
+        # Verify token first
         if not is_token_valid(token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
             )
-            
+        
+        # Get user info from token for logging purposes
+        user_info = decode_access_token(token)
+        
+        # Blacklist the token
         blacklist_token(token)
-        logging.log("User logged out successfully", "info")
+        
+        logging.log(f"User {user_info.get('sub', 'unknown')} logged out successfully", "info")
         return {"message": "Successfully logged out"}
 
     except Exception as e:
@@ -376,6 +383,22 @@ async def revoke_tokens(
 ):
     """Revoke all tokens for the current user"""
     try:
-        return None 
-    except Exception as e: 
-        return None
+        # Create a token revocation entry in the database
+        revocation = models.TokenRevocation( # type: ignore
+            user_id=current_user.id, # type: ignore
+            revocation_time=datetime.utcnow() # type: ignore
+        )
+        
+        session.add(revocation)
+        session.commit()
+        
+        logging.log(f"All tokens revoked for user {current_user.email}", "info")
+        return {"message": "All tokens have been revoked. Please log in again."}
+    
+    except Exception as e:
+        session.rollback()
+        logging.log(f"Token revocation error: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to revoke tokens"
+        )

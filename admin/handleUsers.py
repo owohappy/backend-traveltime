@@ -1,92 +1,116 @@
-from misc import logging
+from fastapi import HTTPException, status
+from sqlmodel import Session, select, update, delete
+from misc import models, db, logging
+from typing import List, Optional
+import datetime
 
-# Assuming a simple in-memory user store for demonstration
+def get_all_users(session: Session) -> List[models.User]:
+    """Get all users with pagination"""
+    try:
+        users = session.exec(select(models.User)).all()
+        return users
+    except Exception as e:
+        logging.log(f"Error getting users: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve users"
+        )
 
-#get users from db
-def getUsers():
-    """
-    Retrieves all users from the system.
-    """
-    return users
+def get_user_by_id(user_id: int, session: Session) -> models.User:
+    """Get user by ID"""
+    try:
+        user = session.exec(select(models.User).where(models.User.id == user_id)).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.log(f"Error getting user {user_id}: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user"
+        )
 
-users = getUsers()
+def update_user(user_id: int, update_data: dict, session: Session) -> models.User:
+    """Update user information"""
+    try:
+        user = get_user_by_id(user_id, session)
+        
+        # Update fields
+        for key, value in update_data.items():
+            if hasattr(user, key) and key != "id":
+                setattr(user, key, value)
+        
+        user.updated_at = datetime.datetime.utcnow()
+        session.commit()
+        session.refresh(user)
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logging.log(f"Error updating user {user_id}: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Failed to update user"
+        )
 
-def deleteUser(user_id):
-    """
-    Deletes a user from the system if their class is 2.
-    """
-    global users
-
-    user_to_delete = None
-    for user_in_list in users:
-        if user_in_list["id"] == user_id and user_in_list.get("class") == 2: # type: ignore
-            user_to_delete = user_in_list
-            break  # Found the user, no need to continue iterating
-    
-    if user_to_delete:
-        users.remove(user_to_delete)
-        logging.log(message=f"User {user_id} deleted.", type="info")
+def delete_user(user_id: int, session: Session) -> bool:
+    """Delete user"""
+    try:
+        user = get_user_by_id(user_id, session)
+        
+        # Delete user
+        session.delete(user)
+        session.commit()
+        
         return True
-    else:
-        logging.log(message=f"User {user_id} not found or not class 2.", type="warning")
-        return False
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logging.log(f"Error deleting user {user_id}: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user"
+        )
 
-def updateUser(user_id, **kwargs):
-    """
-    Updates a user's information in the system if their class is 2.
-    """
-    for user in users:
-        if user["id"] == user_id and user.get("class") == 2:
-            user.update(kwargs)
-            logging.log(message=f"User {user_id} updated.", type="info")
-            return True
-    logging.log(message=f"User {user_id} not found or not class 2.", type="warning")
-    return False
+def suspend_user(user_id: int, reason: str, session: Session) -> models.User:
+    """Suspend a user account"""
+    try:
+        update_data = {
+            "is_active": False,
+            "suspension_reason": reason,
+            "suspended_at": datetime.datetime.utcnow()
+        }
+        
+        return update_user(user_id, update_data, session)
+    except Exception as e:
+        logging.log(f"Error suspending user {user_id}: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to suspend user"
+        )
 
-def getUser(user_id):
-    """
-    Retrieves a user's information from the system if their class is 2.
-    """
-    for user in users:
-        if user["id"] == user_id and user.get("class") == 2:
-            return user
-    return None
-
-def getAllUsers():
-    """
-    Retrieves all users from the system with class 2.
-    """
-    return [user for user in users if user.get("class") == 2]
-
-def getUserById(user_id):
-    """
-    Retrieves a user by their ID from the system if their class is 2.
-    """
-    return getUser(user_id)
-
-def getUserByEmail(email):
-    """
-    Retrieves a user by their email from the system if their class is 2.
-    """
-    for user in users:
-        if user["email"] == email and user.get("class") == 2:
-            return user
-    return None
-
-def getUserByUsername(username):
-    """
-    Retrieves a user by their username from the system if their class is 2.
-    """
-    for user in users:
-        if user["username"] == username and user.get("class") == 2:
-            return user
-    return None
-
-def getUserByPhone(phone):
-    """
-    Retrieves a user by their phone number from the system if their class is 2.
-    """
-    for user in users:
-        if user["phone"] == phone and user.get("class") == 2:
-            return user
-    return None
+def reinstate_user(user_id: int, session: Session) -> models.User:
+    """Reinstate a suspended user account"""
+    try:
+        update_data = {
+            "is_active": True,
+            "suspension_reason": None,
+            "suspended_at": None,
+            "reinstated_at": datetime.datetime.utcnow()
+        }
+        
+        return update_user(user_id, update_data, session)
+    except Exception as e:
+        logging.log(f"Error reinstating user {user_id}: {str(e)}", "error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reinstate user"
+        )
