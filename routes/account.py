@@ -22,7 +22,7 @@ def user_points(user_id: str, current_user: str = Depends(get_current_user)):
     if current_user != user_id:
         raise HTTPException(status_code=403, detail="You can only access your own points.")
     try:
-        points = travel.get_user_points(user_id)
+        points = travel.get_user_points(user_id) # type: ignore
         return {"points": points}
     except Exception as e:
         if debugBool:

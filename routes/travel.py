@@ -23,7 +23,7 @@ async def heartbeat(user_id: str, ping: schemas.LocationPing, request: Request):
     auth: str = str(headers.get("Authorization"))
     if is_token_valid(auth):
         try:
-            result = travel.gpsinput(user_id, ping.latitude, ping.longitude)
+            result = travel.gpsinput(user_id, ping.latitude, ping.longitude) # type: ignore
             # Assume result contains duration in seconds or minutes
             # You may need to adjust this depending on gpsinput's return value
             if result and "duration" in result:

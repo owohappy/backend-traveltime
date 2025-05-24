@@ -20,7 +20,8 @@ async def register(
     session: Session = Depends(db.get_session)
 ):
     """Register a new user in the system"""
-    return await auth.register(user, session)
+    return await auth.register(user, session) # type: ignore
+
 
 
 
@@ -34,7 +35,7 @@ async def login(
     session: Session = Depends(db.get_session)
 ):
     """Authenticate user and return access token"""
-    return await auth.login(credentials, session)
+    return await auth.login(credentials, session) # type: ignore
 
 
 
@@ -59,7 +60,7 @@ async def refresh_token(
     session: Session = Depends(db.get_session)
 ):
     """Refresh access token using refresh token"""
-    return await auth.refresh_token(token, session)
+    return await auth.refresh_token(token, session) # type: ignore
 
 @app.post("/check-token", 
             summary="Check token validity",
@@ -92,7 +93,8 @@ async def initiate_password_reset(
     session: Session = Depends(db.get_session)
 ):
     """Initiate password reset process"""
-    return await auth.initiate_password_reset(email, session)
+    return await auth.initiate_password_reset(email, session) # type: ignore
+
 
 
 @app.post("/password-reset/confirm",
@@ -103,7 +105,8 @@ async def confirm_password_reset(
     session: Session = Depends(db.get_session)
 ):
     """Finalize password reset with new password"""
-    return await auth.confirm_password_reset(reset_data, session)
+    return await auth.confirm_password_reset(reset_data, session) # type: ignore
+
 
 # ======================
 # Email Verification
@@ -117,7 +120,8 @@ async def verify_email(
     session: Session = Depends(db.get_session)
 ):
     """Verify user's email address"""
-    return await auth.verify_email(token, session)
+    return await auth.verify_email(token, session) # type: ignore
+
 
 @app.post("/resend-verification",
           summary="Resend email verification",
@@ -127,7 +131,8 @@ async def resend_verification(
     session: Session = Depends(db.get_session)
 ):
     """Resend email verification link to user"""
-    return await auth.request_email_verification(email, session)
+    return await auth.request_email_verification(email, session) # type: ignore
+ 
 
 
 
@@ -143,7 +148,8 @@ async def enable_2fa(
     session: Session = Depends(db.get_session)
 ):
     """Enable two-factor authentication for user"""
-    return await auth.enable_2fa(current_user, session)
+    return await auth.enable_2fa(current_user, session) # type: ignore
+ 
 
 
 @app.post("/2fa/verify",
@@ -155,4 +161,5 @@ async def verify_2fa(
     session: Session = Depends(db.get_session)
 ):
     """Verify MFA code and return access token"""
-    return await auth.verify_2fa(verification, session)
+    return await auth.verify_2fa(verification, session) # type: ignore
+ 
