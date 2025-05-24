@@ -1,0 +1,9 @@
+[00:47:29] [36m info:[37m Email configuration is not set up correctly. Please check your config.json file.
+[00:47:29] [33m warning:[37m JWT key value is not changed
+[00:47:29] [36m info:[37m Debug database initialized successfully using sqlite:///./db/test_debug.db
+[00:47:29] [36m info:[37m Database have been loaded
+[00:47:29] [36m info:[37m Auth routes have been loaded
+[00:47:29] [36m info:[37m Account routes have been loaded
+[00:47:29] [36m info:[37m Travel routes have been loaded
+[00:47:29] [36m info:[37m Travel routes have been loaded
+[00:47:29] [32m success:[37m API has been started

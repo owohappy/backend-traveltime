@@ -1,47 +1,83 @@
-# taveltime
+# TravelTime
 
-A App that rewards you for taking the bus instead of the car 
+An app that rewards users for taking public transportation instead of cars. The backend API tracks user travel routes and awards points for eco-friendly transportation choices.
+
+## Features
+
+- **Authentication**: User registration, login, logout, token refresh, and two-factor authentication
+- **Account Management**: User profiles and points tracking
+- **Travel Tracking**: GPS location monitoring to verify public transport usage
+- **Statistics & Metrics**: Leaderboards and usage statistics
+- **Gambling**: Optional point gambling with card games (Blackjack)
 
 ## Prerequisites
 
-Ensure you have the following installed:
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
+- Python 3.8+
+- Required packages (see `requirements.txt`):
+    - FastAPI
+    - Uvicorn
+    - SQLModel
+    - Passlib
+    - PyOTP
+    - Shapely
+    - Other dependencies
 
 ## Getting Started
 
-Follow these steps to set up and run the project locally.
+### Local Development Setup
 
-### Clone the Repository
+1. Clone the repository:
+     ```bash
+     git clone https://github.com/owohappy/traveltime-backend.git
+     cd traveltime-backend
+     ```
 
-```bash
-git clone https://github.com/owohappy/traveltime-backend.git
-cd traveltime-backend
-```
+2. Create a virtual environment:
+     ```bash
+     python -m venv venv
+     source venv/bin/activate  # On Windows: venv\Scripts\activate
+     ```
 
-### Build and Start the Containers
+3. Install dependencies:
+     ```bash
+     pip install -r requirements.txt
+     ```
 
-```bash
-docker-compose up --build
-```
+4. Run the application:
+     ```bash
+     uvicorn main:app --reload
+     ```
 
-### Access the Application
+### Docker Setup
 
-- The application will be available at `http://localhost:8000` (Port can be changed in the server config).
+1. Build and start the containers:
+     ```bash
+     docker-compose up --build
+     ```
+
+2. Access the application at `http://localhost:8000`
 
 ## Project Structure
-TODO
 
-- **docker-compose.yml**: Defines the services and their configurations.
-- **Dockerfile**: Instructions to build the application image.
-- **src/**: Application source code.
+- **auth/**: Authentication and user management
+- **routes/**: API route definitions (auth, account, travel, misc)
+- **travel/**: Travel tracking and route verification
+- **gambling/**: Point gambling functionality
+- **misc/**: Utilities, schemas, templates
+- **main.py**: Application entry point
+- **API.md**: API documentation
 
-## Useful Commands
+## API Documentation
 
-- **Start the containers**: `docker-compose up`
-- **Stop the containers**: `docker-compose down`
-- **Rebuild the containers**: `docker-compose up --build`
-- **View running containers**: `docker ps`
+The API provides endpoints for:
+- User authentication
+- Account management
+- Travel tracking
+- Statistics and metrics
+
+Complete API documentation is available at the `/docs` endpoint.
+
+See `API.md` for detailed endpoint information.
 
 ## Contributing
 
@@ -49,4 +85,4 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License.

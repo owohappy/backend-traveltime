@@ -23,7 +23,9 @@ smtp_port: int = jsonConfig['email']['smtp']['port']
 username: str = jsonConfig['email']['smtp']['username']
 password:str = jsonConfig['email']['smtp']['password']
 sender_email: str = jsonConfig['email']['smtp']['senderEmail']
-
+subject_verifyEmail: str = jsonConfig['email']['subjects']['verifyEmail']
+subject_resetPassword: str = jsonConfig['email']['subjects']['resetPassword']
+subject_enableMFA: str = jsonConfig['email']['subjects']['enableMFA']
 
 global server
 

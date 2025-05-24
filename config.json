@@ -5,8 +5,7 @@
       "nameDB": "test",
       "jwtSecretKey": ""
     },
-    "email":
-    {
+    "email": {
         "smtp": {
             "host": "smtp.example.com",
             "port": 587,
@@ -14,7 +13,11 @@
             "password": "",
             "senderEmail":""
         },
-        "enabled": false
-
+        "enabled": false,
+        "subjects": {
+            "verifyEmail": "verify your traveltime account",
+            "resetPassword": "reset your traveltime password",
+            "enableMFA": "your MFA activation code"
+        }
     }
-}
+}   

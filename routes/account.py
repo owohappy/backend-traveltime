@@ -55,5 +55,15 @@ async def user_update_data(user_id: str, field: str = Header(...), data: str = H
     '''
     Allowing users to update their info using the field and data headers
     '''
-    #TODO: Auth
+    if not field or not data:
+        raise HTTPException(status_code=400, detail="Field and data headers are required.")
+    if field not in ["name", "email", "password", "profile_picture"]:
+        raise HTTPException(status_code=400, detail="Invalid field specified.")
+    # Process the update using the account module
+    if not token:
+        raise HTTPException(status_code=401, detail="Token is required.")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required.")
+    if not data:
+        raise HTTPException(status_code=400, detail="Data is required.")
     return await account.process_headers(user_id, field, data, token) # type: ignore
