@@ -167,7 +167,11 @@ async def initiate_password_reset(
         
         reset_token = create_verify_token(email)
         reset_url = f"{BASE_URL}/reset-password/{reset_token}"
-        
+
+        # add reset token to database
+        session.add(models.PasswordResetToken(email=email, token=reset_token)) # type: ignore
+        session.commit()
+
         if not DEBUG:
             email.sendPasswordResetEmail(user.email, reset_url) # type: ignore
         else:
@@ -183,15 +187,55 @@ async def initiate_password_reset(
         )
 
 async def confirm_password_reset(
-    reset_data: schemas.PasswordResetConfirm,
+    reset_data: schemas.PasswordReset,
     session: Session = Depends(db.get_session)
 ):
     """Finalize password reset with new password"""
     try:
-        # Token verification logic here
+        # Token verification logic via sql query
+        token_record = session.exec(
+            select(models.PasswordReset).where(models.PasswordReset.token == reset_data.token) # type: ignore
+        ).first() # type: ignore
+        if not token_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        # Check if token is valid
+        jsonTokenResponse = check_verify_token(reset_data.token)
+        if not jsonTokenResponse["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        # Fetch user by email
+        user = session.exec(select(models.User).where(models.User.email == jsonTokenResponse['userid'])).first() # type: ignore
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        # Update user's password
+        hashed_password = hash_password(reset_data.password)
+        session.exec(update(models.User)
+                    .where(models.User.email == jsonTokenResponse['userid']) # type: ignore
+                    .values(hashed_password=hashed_password))
+        session.commit()
+        # Remove reset token from database
+        session.exec(
+            update(models.PasswordReset) # type: ignore
+            .where(models.PasswordReset.token == reset_data.token) # type: ignore
+            .values(is_used=True)
+        ) # type: ignore
+        session.commit()
+        # Log the password reset
+        logging.log(f"Password reset for user {user.email}", "info")
+        # Note: Do not log passwords in production
+
+
         # Update password in database
         return {"message": "Password successfully reset"}
-    
+
     except Exception as e:
         logging.log(f"Password reset confirmation error: {str(e)}", "error")
         raise HTTPException(

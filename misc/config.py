@@ -33,7 +33,7 @@ def load_config():
             
         # Override with environment variables if present
         if os.getenv("APP_DEBUG"):
-            config["app"]["debug"] = os.getenv("APP_DEBUG").lower() == "true"
+            config["app"]["debug"] = os.getenv("APP_DEBUG").lower() == "true" # type: ignore
         if os.getenv("APP_BASE_URL"):
             config["app"]["baseURL"] = os.getenv("APP_BASE_URL")
         if os.getenv("JWT_SECRET_KEY"):
@@ -41,7 +41,7 @@ def load_config():
             
         # Email config from environment
         if os.getenv("EMAIL_ENABLED"):
-            config["email"]["enabled"] = os.getenv("EMAIL_ENABLED").lower() == "true"
+            config["email"]["enabled"] = os.getenv("EMAIL_ENABLED").lower() == "true" # type: ignore
         if os.getenv("EMAIL_HOST"):
             config["email"]["smtp"]["host"] = os.getenv("EMAIL_HOST")
         

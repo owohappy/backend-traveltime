@@ -63,3 +63,11 @@ class TravelHistory(SQLModel, table=True):
     distance: float
     duration: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PasswordResetToken(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    token: str = Field(unique=True, max_length=100)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow().replace(hour=23, minute=59, second=59))
+    used: bool = Field(default=False)  # Track if the token has been used

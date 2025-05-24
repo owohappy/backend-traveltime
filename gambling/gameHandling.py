@@ -75,6 +75,4 @@ def startGame(userID, betAmount):
     
 
 def continueGame(gameID: int, move: str):
-    {
-        
-    }
+    return jsonify({"error": "Not implemented yet"}), 501 # TODO
