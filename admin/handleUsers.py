@@ -1,12 +1,15 @@
 from misc import logging
 
-#TODO: WHOLE FILE IS A TODO
 # Assuming a simple in-memory user store for demonstration
-users = [
-    {"id": 1, "username": "alice", "email": "alice@example.com", "phone": "1234567890", "class": 2},
-    {"id": 2, "username": "bob", "email": "bob@example.com", "phone": "0987654321", "class": 1},
-    # Add more users as needed
-]
+
+#get users from db
+def getUsers():
+    """
+    Retrieves all users from the system.
+    """
+    return users
+
+users = getUsers()
 
 def deleteUser(user_id):
     """

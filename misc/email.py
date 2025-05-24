@@ -29,11 +29,6 @@ subject_enableMFA: str = jsonConfig['email']['subjects']['enableMFA']
 
 global server
 
-#Predefine email Subjects TODO: make this able to be changed in the .json config
-subject_verifyEmail = "verify your traveltime account"
-subject_resetPassword = "reset your traveltime password"
-subject_enableMFA = "your MFA activation code"
-
 
 
 
