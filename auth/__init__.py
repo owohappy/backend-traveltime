@@ -152,7 +152,7 @@ async def logout(token: str = Depends(schemas.oauth2_scheme)):
         # Blacklist the token
         blacklist_token(token)
         
-        logging.log(f"User {user_info.get('sub', 'unknown')} logged out successfully", "info")
+        logging.log(f"User {user_info.get('sub', 'unknown')} logged out successfully", "info") # type: ignore
         return {"message": "Successfully logged out"}
 
     except Exception as e:
@@ -170,27 +170,37 @@ async def initiate_password_reset(
     try:
         user = session.exec(select(models.User).where(models.User.email == email)).first() # type: ignore
         if not user:
-            return  # Prevent email enumeration
+            # Still return success to prevent email enumeration
+            return {"message": "If the email exists, reset instructions have been sent"}
         
         reset_token = create_verify_token(email)
         reset_url = f"{BASE_URL}/reset-password/{reset_token}"
 
-        # add reset token to database
-        session.add(models.PasswordResetToken(email=email, token=reset_token)) # type: ignore
+        # Store reset token in database
+        expiry = datetime.utcnow() + datetime.timedelta(hours=24) # type: ignore
+        reset_record = models.PasswordResetToken(
+            email=email, # type: ignore
+            token=reset_token,
+            expires_at=expiry
+        )
+        session.add(reset_record)
         session.commit()
 
         if not DEBUG:
-            email.sendPasswordResetEmail(user.email, reset_url) # type: ignore
+            # Send actual email
+            email.sendPasswordResetEmail(email, reset_url) # type: ignore
         else:
+            # Log URL for debugging
             logging.log(f"Password reset URL: {reset_url}", "debug")
             
         return {"message": "Password reset instructions sent"}
 
     except Exception as e:
+        session.rollback()
         logging.log(f"Password reset initiation error: {str(e)}", "error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Password reset failed"
+            detail="Failed to initiate password reset"
         )
 
 async def confirm_password_reset(
@@ -199,57 +209,57 @@ async def confirm_password_reset(
 ):
     """Finalize password reset with new password"""
     try:
-        # Token verification logic via sql query
+        # Verify token
         token_record = session.exec(
-            select(models.PasswordReset).where(models.PasswordReset.token == reset_data.token) # type: ignore
+            select(models.PasswordResetToken)
+            .where(
+                models.PasswordResetToken.token == reset_data.token, # type: ignore
+                models.PasswordResetToken.used == False, # type: ignore
+                models.PasswordResetToken.expires_at > datetime.utcnow() # type: ignore
+            )
         ).first() # type: ignore
+        
         if not token_record:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired reset token"
             )
-        # Check if token is valid
-        jsonTokenResponse = check_verify_token(reset_data.token)
-        if not jsonTokenResponse["valid"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired reset token"
-            )
-        # Fetch user by email
-        user = session.exec(select(models.User).where(models.User.email == jsonTokenResponse['userid'])).first() # type: ignore
+        
+        # Get user and update password
+        user = session.exec(
+            select(models.User)
+            .where(models.User.email == token_record.email) # type: ignore
+        ).first() # type: ignore
+        
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        # Update user's password
-        hashed_password = hash_password(reset_data.password)
-        session.exec(update(models.User)
-                    .where(models.User.email == jsonTokenResponse['userid']) # type: ignore
-                    .values(hashed_password=hashed_password))
+        
+        # Update password
+        user.hashed_password = hash_password(reset_data.new_password) # type: ignore
+        
+        # Mark token as used
+        token_record.used = True
+        
         session.commit()
-        # Remove reset token from database
-        session.exec(
-            update(models.PasswordReset) # type: ignore
-            .where(models.PasswordReset.token == reset_data.token) # type: ignore
-            .values(is_used=True)
-        ) # type: ignore
-        session.commit()
-        # Log the password reset
-        logging.log(f"Password reset for user {user.email}", "info")
-        # Note: Do not log passwords in production
-
-
-        # Update password in database
-        return {"message": "Password successfully reset"}
-
+        
+        # Log the event
+        logging.log(f"Password reset completed for {user.email}", "info")
+        
+        return {"message": "Password has been reset successfully"}
+        
+    except HTTPException:
+        raise
     except Exception as e:
+        session.rollback()
         logging.log(f"Password reset confirmation error: {str(e)}", "error")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset password"
         )
-
+    
 async def verify_email(
     token: str,
     session: Session = Depends(db.get_session)

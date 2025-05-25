@@ -14,16 +14,24 @@ nameDB = jsonConfig['app']['nameDB']
 
 
 @app.get("/user/{user_id}/points")
-def user_points(user_id: str, current_user: str = Depends(get_current_user)):
+def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
     '''
-    Call to get current points of a UserID (TODO: rolebased tokens) (currently locked to userID of JWT)
+    Call to get current points of a UserID with role-based token authentication
     '''
-    # Ensure the cfurrent user is accessing their own points
-    if current_user != user_id:
-        raise HTTPException(status_code=403, detail="You can only access your own points.")
     try:
+        # Extract roles from the current_user
+        roles = current_user.get("roles", [])
+        user_id_from_token = current_user.get("sub")
+        
+        # Check if user is accessing their own data or has admin role
+        if user_id != user_id_from_token and "admin" not in roles:
+            raise HTTPException(
+                status_code=403, 
+                detail="You can only access your own points unless you have admin privileges."
+            )
+            
         points = travel.get_user_points(user_id) # type: ignore
-        return {"points": points}
+        return {"points": points, "user_id": user_id}
     except Exception as e:
         if debugBool:
             logging.log("Error getting points: " + str(e), "error")

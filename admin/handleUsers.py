@@ -8,7 +8,7 @@ def get_all_users(session: Session) -> List[models.User]:
     """Get all users with pagination"""
     try:
         users = session.exec(select(models.User)).all()
-        return users
+        return users # type: ignore
     except Exception as e:
         logging.log(f"Error getting users: {str(e)}", "error")
         raise HTTPException(
