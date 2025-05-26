@@ -59,6 +59,7 @@ def decode_access_token(token: str):
 
 def is_token_valid(token: str) -> bool:
     try:
+        print(f"Checking token: {token}")
         if decode_access_token(token):
             return True  
         else:
