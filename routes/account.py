@@ -5,6 +5,7 @@ from auth.accountManagment import get_current_user
 from misc import db, schemas
 from . import travel
 from misc import logging, config
+import auth
 import account
 
 app = APIRouter(tags=["account"])
@@ -81,6 +82,27 @@ async def user_update_data(
     return await account.user_update_data(user_id, contents, field, data)
 
 @app.post("/user/{user_id}/updatePicture")
-async def create_upload_file(file: UploadFile):
+async def create_upload_file(file: UploadFile, access_token: str = Query(...), user_id: str = Query(...)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token is required.")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required.")
+    # Save the file to a specific location
+    file_location = f"misc/templates/pfp/{user_id}.jpg"
+    with open(file_location, "wb") as buffer:
+        buffer.write(await file.read())    
+
     print(f"File received: {file.filename}")
     return {"filename"}
+
+@app.get("misc/templates/pfp/{user_id}.jpg")
+def get_user_picture(user_id: str):
+    """
+    Endpoint to retrieve user profile picture.
+    """
+    file_location = f"misc/templates/pfp/{user_id}.jpg"
+    try:
+        with open(file_location, "rb") as image_file:
+            return {"filename": file_location, "content": image_file.read()}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile picture not found.")
