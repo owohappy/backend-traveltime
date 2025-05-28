@@ -1,5 +1,5 @@
 # main.py
-from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Header, File, Query, UploadFile
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -61,17 +61,17 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
 @app.post("/user/{user_id}/updateData")
 async def user_update_data(
     user_id: str, 
-    access_token: str = None,
-    field: str = Header(...),
-    data: str = Header(...),
-    file: UploadFile = File(None)
+    field: str = Form(...),
+    data: str = Form(...),
+    file: UploadFile = File(None),
+    access_token: str = Query(None)
 ):
     '''
-    Allowing users to update their info using the field and data headers
+    Allowing users to update their info using form data
     with the access token passed as a query parameter
     '''
     if not field or not data:
-        raise HTTPException(status_code=400, detail="Field and data headers are required.")
+        raise HTTPException(status_code=400, detail="Field and data are required.")
     
     if field not in ["name", "email", "password", "profile_picture", "phonenumber"]:
         raise HTTPException(status_code=400, detail="Invalid field specified.")
