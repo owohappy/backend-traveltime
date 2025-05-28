@@ -79,3 +79,7 @@ async def user_update_data(
         raise HTTPException(status_code=400, detail="User ID is required.")
     
     return await account.user_update_data(user_id, contents, field, data)
+
+@app.post("/user/{user_id}/updatePicture")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
