@@ -95,7 +95,7 @@ async def create_upload_file(user_id: str, file: UploadFile, access_token: str =
     print(f"File received: {file.filename}")
     return {"filename"}
 
-@app.get("misc/templates/pfp/{user_id}.jpg")
+@app.get("/misc/templates/pfp/{user_id}.jpg")
 def get_user_picture(user_id: str):
     """
     Endpoint to retrieve user profile picture.
