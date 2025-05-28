@@ -1,6 +1,6 @@
 from misc import models, logging
 from sqlmodel import Session, select
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, File, UploadFile
 
 def get_user_data(user_id: str, session: Session):
     points: int = 0
@@ -30,7 +30,7 @@ def get_user_data(user_id: str, session: Session):
         
     }
 
-def update_user_data(user_id: str, field: str, data: str, session: Session):
+def update_user_data(user_id: str, field: str, data: str, file: UploadFile, session: Session):
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
         logging.log(f"User {user_id} not found", "warning")
@@ -39,6 +39,9 @@ def update_user_data(user_id: str, field: str, data: str, session: Session):
     allowed_fields = {"name", "phonenumber", "address"}
     if field not in allowed_fields:
         raise HTTPException(status_code=400, detail="Field not allowed to be updated")
+    if file != File(None):
+        #save file
+        file_location = f"misc/templates/pfp/{user_id}.jpg"
     setattr(user, field, data)
     session.add(user)
     session.commit()

@@ -1,5 +1,5 @@
 # main.py
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -59,7 +59,7 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
     return user
 
 @app.post("/user/{user_id}/updateData")
-async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token)):
+async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token), file: UploadFile = File(None)):
     '''
     Allowing users to update their info using the field and data headers
     '''
@@ -74,4 +74,4 @@ async def user_update_data(user_id: str, field: str = Header(...), data: str = H
         raise HTTPException(status_code=400, detail="User ID is required.")
     if not data:
         raise HTTPException(status_code=400, detail="Data is required.")
-    return await account.process_headers(user_id, field, data, token) # type: ignore
+    return await account.process_headers(user_id, field, data, token, file) # type: ignore
