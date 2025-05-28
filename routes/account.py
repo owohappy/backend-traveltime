@@ -1,5 +1,6 @@
 # main.py
-from fastapi import APIRouter, Depends, HTTPException, Header
+import shutil
+from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -59,10 +60,11 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
     return user
 
 @app.post("/user/{user_id}/updateData")
-async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token)):
+async def user_update_data(user_id: str, data: str = Header(...), token: str = Depends(schemas.Token), file: UploadFile = File(None)):
     '''
     Allowing users to update their info using the field and data headers
     '''
+<<<<<<< HEAD
     if not field or not data:
         raise HTTPException(status_code=400, detail="Field and data headers are required.")
     if field not in ["name", "email", "password", "profile_picture"]:
@@ -75,3 +77,11 @@ async def user_update_data(user_id: str, field: str = Header(...), data: str = H
     if not data:
         raise HTTPException(status_code=400, detail="Data is required.")
     return await account.process_headers(user_id, field, data, token) # type: ignore
+=======
+    if file != File(None):
+        # If a file is provided, process it
+        with open(f"uploads/{user_id +".jpg"}", "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    
+    return None
+>>>>>>> 9ad7059 (Implement transport route fetching and caching functionality; add unit tests for route-related functions)
