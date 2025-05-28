@@ -82,7 +82,7 @@ async def user_update_data(
     return await account.user_update_data(user_id, contents, field, data)
 
 @app.post("/user/{user_id}/updatePicture")
-async def create_upload_file(file: UploadFile, access_token: str = Query(...), user_id: str = Query(...)):
+async def create_upload_file(user_id: str, file: UploadFile, access_token: str = Query(...),):
     if not access_token:
         raise HTTPException(status_code=401, detail="Access token is required.")
     if not user_id:
