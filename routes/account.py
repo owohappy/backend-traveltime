@@ -1,5 +1,6 @@
 # main.py
 from fastapi import APIRouter, Depends, Form, HTTPException, Header, File, Query, UploadFile
+from fastapi.responses import FileResponse
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -94,7 +95,6 @@ async def create_upload_file(user_id: str, file: UploadFile, access_token: str =
 
     print(f"File received: {file.filename}")
     return {"filename"}
-
 @app.get("/misc/templates/pfp/{user_id}.jpg")
 def get_user_picture(user_id: str):
     """
@@ -102,8 +102,7 @@ def get_user_picture(user_id: str):
     """
     file_location = f"misc/templates/pfp/{user_id}.jpg"
     try:
-        with open(file_location, "rb") as image_file:
-            return {"filename": file_location, "content": image_file.read()}
+        return FileResponse(file_location, media_type="image/jpeg")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Profile picture not found.")
     except Exception as e:
