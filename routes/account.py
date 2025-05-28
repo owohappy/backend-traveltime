@@ -105,4 +105,7 @@ def get_user_picture(user_id: str):
         with open(file_location, "rb") as image_file:
             return {"filename": file_location, "content": image_file.read()}
     except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="Profile picture not found.")
+        raise HTTPException(status_code=404, detail="Profile picture not found.")
+    except Exception as e:
+        logging.log(f"Error retrieving profile picture for user {user_id}: {str(e)}", "error")
+        raise HTTPException(status_code=500, detail="Error retrieving profile picture.")
