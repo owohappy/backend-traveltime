@@ -38,12 +38,12 @@ def update_user_data(user_id: str, field: str, data: str, file, session: Session
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     # Only allow updating certain fields
     allowed_fields = {"name", "phonenumber", "address"}
-    if (field not in allowed_fields and file == File(None)):
+    if (field not in allowed_fields and file == None):
         raise HTTPException(status_code=400, detail="Field not allowed to be updated")
-    if file != File(None):
+    if file != None:
         file_location = f"misc/templates/pfp/{user_id}.jpg"
         with open(file_location, "wb") as buffer:
-            buffer.write(file.file.read())
+            buffer.write(file)
         setattr(user, "pfp_url", file_location)
         session.add(user)
         session.commit()

@@ -61,7 +61,7 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
 @app.post("/user/{user_id}/updateData")
 async def user_update_data(
     user_id: str, 
-    file: UploadFile = File(None),
+    file: UploadFile = File(...),
     access_token: str = Query(None)
 ):
     '''
@@ -70,7 +70,7 @@ async def user_update_data(
     '''
     field = "name"
     data = "Lucas Roeder"
-
+    contents = await file.read()
     # Using access_token from query parameters instead of token dependency
     if not access_token:
         raise HTTPException(status_code=401, detail="Access token is required.")
@@ -78,4 +78,4 @@ async def user_update_data(
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required.")
     
-    return await account.user_update_data(user_id, file, field, data)
+    return await account.user_update_data(user_id, contents, field, data)
