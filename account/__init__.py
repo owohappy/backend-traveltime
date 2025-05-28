@@ -10,9 +10,9 @@ def user_get_data(user_id: str, session=Depends(db.get_session)):
 
 async def user_update_data(
     user_id: str,
+    file,
     field: str = Header(...),
     data: str = Header(...),
-    file: UploadFile = File(None),
     session=db.get_session
 ):
     '''

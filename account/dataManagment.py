@@ -30,7 +30,7 @@ def get_user_data(user_id: str, session: Session):
         
     }
 
-def update_user_data(user_id: str, field: str, data: str, file: UploadFile, session: Session):
+def update_user_data(user_id: str, field: str, data: str, file, session: Session):
     session = db.get_session()
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
