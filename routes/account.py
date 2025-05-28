@@ -82,4 +82,5 @@ async def user_update_data(
 
 @app.post("/user/{user_id}/updatePicture")
 async def create_upload_file(file: UploadFile):
-    return {"filename": file.filename}
+    print(f"File received: {file.filename}")
+    return {"filename"}
