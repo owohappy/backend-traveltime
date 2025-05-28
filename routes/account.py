@@ -59,20 +59,28 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
     return user
 
 @app.post("/user/{user_id}/updateData")
-async def user_update_data(user_id: str, field: str = Header(...), data: str = Header(...), token: str = Depends(schemas.Token), file: UploadFile = File(None)):
+async def user_update_data(
+    user_id: str, 
+    access_token: str = None,
+    field: str = Header(...),
+    data: str = Header(...),
+    file: UploadFile = File(None)
+):
     '''
     Allowing users to update their info using the field and data headers
+    with the access token passed as a query parameter
     '''
     if not field or not data:
         raise HTTPException(status_code=400, detail="Field and data headers are required.")
-    if field not in ["name", "email", "password", "profile_picture"]:
+    
+    if field not in ["name", "email", "password", "profile_picture", "phonenumber"]:
         raise HTTPException(status_code=400, detail="Invalid field specified.")
-    # Process the update using the account module
-    if not token:
-        raise HTTPException(status_code=401, detail="Token is required.")
+    
+    # Using access_token from query parameters instead of token dependency
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token is required.")
+    
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required.")
-    if not data:
-        raise HTTPException(status_code=400, detail="Data is required.")
-    print(file)
-    return await account.user_update_data(user_id,file, field, data ) 
+    
+    return await account.user_update_data(user_id, file, field, data)
