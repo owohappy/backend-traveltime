@@ -13,7 +13,7 @@ async def user_update_data(
     field: str = Header(...),
     data: str = Header(...),
     file: UploadFile = File(None),
-    session=Depends(db.get_session)
+    session=db.get_session
 ):
     '''
     Allowing users to update their info using the field and data headers
