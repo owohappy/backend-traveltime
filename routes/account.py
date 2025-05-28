@@ -74,4 +74,4 @@ async def user_update_data(user_id: str, field: str = Header(...), data: str = H
         raise HTTPException(status_code=400, detail="User ID is required.")
     if not data:
         raise HTTPException(status_code=400, detail="Data is required.")
-    return await account.process_headers(user_id, field, data, token, file) # type: ignore
+    return await account.user_update_data(user_id, field, data, file) 
