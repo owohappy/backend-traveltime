@@ -61,8 +61,6 @@ def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), sessi
 @app.post("/user/{user_id}/updateData")
 async def user_update_data(
     user_id: str, 
-    field: str = Form(...),
-    data: str = Form(...),
     file: UploadFile = File(None),
     access_token: str = Query(None)
 ):
@@ -70,12 +68,9 @@ async def user_update_data(
     Allowing users to update their info using form data
     with the access token passed as a query parameter
     '''
-    if not field or not data:
-        raise HTTPException(status_code=400, detail="Field and data are required.")
-    
-    if field not in ["name", "email", "password", "profile_picture", "phonenumber"]:
-        raise HTTPException(status_code=400, detail="Invalid field specified.")
-    
+    field = "name"
+    data = "Lucas Roeder"
+
     # Using access_token from query parameters instead of token dependency
     if not access_token:
         raise HTTPException(status_code=401, detail="Access token is required.")
