@@ -37,7 +37,7 @@ def update_user_data(user_id: str, field: str, data: str, file: UploadFile, sess
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     # Only allow updating certain fields
     allowed_fields = {"name", "phonenumber", "address"}
-    if field not in allowed_fields:
+    if field not in allowed_fields and !file:
         raise HTTPException(status_code=400, detail="Field not allowed to be updated")
     if file != File(None):
         #save file
