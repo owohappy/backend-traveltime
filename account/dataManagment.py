@@ -40,8 +40,14 @@ def update_user_data(user_id: str, field: str, data: str, file: UploadFile, sess
     if (field not in allowed_fields and file == File(None)):
         raise HTTPException(status_code=400, detail="Field not allowed to be updated")
     if file != File(None):
-        #save file
         file_location = f"misc/templates/pfp/{user_id}.jpg"
+        with open(file_location, "wb") as buffer:
+            buffer.write(file.file.read())
+        setattr(user, "pfp_url", file_location)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return {"success": True, "updated_field": "pfp_url", "new_value": file_location}
     setattr(user, field, data)
     session.add(user)
     session.commit()
