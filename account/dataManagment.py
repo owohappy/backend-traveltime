@@ -1,7 +1,7 @@
 from misc import models, logging
 from sqlmodel import Session, select
-from fastapi import HTTPException, status
-
+from fastapi import HTTPException, status, File, UploadFile
+from misc import db, schemas
 def get_user_data(user_id: str, session: Session):
     points: int = 0
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
@@ -30,15 +30,25 @@ def get_user_data(user_id: str, session: Session):
         
     }
 
-def update_user_data(user_id: str, field: str, data: str, session: Session):
+def update_user_data(user_id: str, field: str, data: str, file, session: Session):
+    session = db.get_session()
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
         logging.log(f"User {user_id} not found", "warning")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     # Only allow updating certain fields
     allowed_fields = {"name", "phonenumber", "address"}
-    if field not in allowed_fields:
+    if (field not in allowed_fields and file == None):
         raise HTTPException(status_code=400, detail="Field not allowed to be updated")
+    if file != None:
+        file_location = f"misc/templates/pfp/{user_id}.jpg"
+        with open(file_location, "wb") as buffer:
+            buffer.write(file)
+        setattr(user, "pfp_url", file_location)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return {"success": True, "updated_field": "pfp_url", "new_value": file_location}
     setattr(user, field, data)
     session.add(user)
     session.commit()

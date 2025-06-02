@@ -1,0 +1,2 @@
+[10:35:00] [36m info:[37m Email configuration is not set up correctly. Please check your config.json file.
+[10:35:00] [33m warning:[37m JWT key value is not changed
