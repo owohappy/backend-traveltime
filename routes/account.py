@@ -1,6 +1,8 @@
 # main.py
 from fastapi import APIRouter, Depends, Form, HTTPException, Header, File, Query, UploadFile
 from fastapi.responses import FileResponse
+import shutil
+from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -66,10 +68,8 @@ async def user_update_data(
     file: UploadFile = File(...),
     access_token: str = Query(None)
 ):
-    '''
-    Allowing users to update their info using form data
-    with the access token passed as a query parameter
-    '''
+=======
+async def user_update_data(user_id: str, data: str = Header(...), token: str = Depends(schemas.Token), file: UploadFile = File(None)):
     field = "name"
     data = "Lucas Roeder"
     contents = await file.read()
@@ -108,3 +108,21 @@ def get_user_picture(user_id: str):
     except Exception as e:
         logging.log(f"Error retrieving profile picture for user {user_id}: {str(e)}", "error")
         raise HTTPException(status_code=500, detail="Error retrieving profile picture.")
+    if not field or not data:
+        raise HTTPException(status_code=400, detail="Field and data headers are required.")
+    if field not in ["name", "email", "password", "profile_picture"]:
+        raise HTTPException(status_code=400, detail="Invalid field specified.")
+    # Process the update using the account module
+    if not token:
+        raise HTTPException(status_code=401, detail="Token is required.")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required.")
+    if not data:
+        raise HTTPException(status_code=400, detail="Data is required.")
+    return await account.process_headers(user_id, field, data, token) # type: ignore
+    if file != File(None):
+        # If a file is provided, process it
+        with open(f"uploads/{user_id +".jpg"}", "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    
+    return None

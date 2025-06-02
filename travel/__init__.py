@@ -58,9 +58,12 @@ def fetch_osm_routes_via_overpass():
 def decode_polyline(polyline_str):
     # Placeholder: assumes Google's encoded polyline format
     # Real decoding logic needed if using encoded polylines
+<<<<<<< HEAD
     # Using parameter to avoid unused variable warning
     if polyline_str:
         pass
+=======
+>>>>>>> 9ad7059 (Implement transport route fetching and caching functionality; add unit tests for route-related functions)
     return []
 
 def cache_routes(routes):
@@ -134,12 +137,21 @@ def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines):
     buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
     user_point = Point(user_lat, user_lon)
     return any(buf.contains(user_point) for buf in buffered_routes)
+<<<<<<< HEAD
 def gpsinput(user, lat, lon):
     # Parameters and variables used in logging or future implementation
     _ = user  # Acknowledge unused parameter
     _ = time.time()  # Timestamp for potential logging
     _ = Point(lat, lon)  # User point saved for reference
     
+=======
+
+
+
+def gpsinput(user, lat, lon):
+    ts = time.time()
+    user_point = Point(lat, lon)
+>>>>>>> 9ad7059 (Implement transport route fetching and caching functionality; add unit tests for route-related functions)
     data = is_user_on_any_nearby_route(lat, lon, routes_lines)
     return data
 

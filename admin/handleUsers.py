@@ -1,74 +1,27 @@
-from fastapi import HTTPException, status
-from sqlmodel import Session, select, update, delete
-from misc import models, db, logging
-from typing import List, Optional
-import datetime
+from misc import logging
 
-def get_all_users(session: Session) -> List[models.User]:
-    """Get all users with pagination"""
-    try:
-        users = session.exec(select(models.User)).all()
-        return users # type: ignore
-    except Exception as e:
-        logging.log(f"Error getting users: {str(e)}", "error")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve users"
-        )
+#TODO: WHOLE FILE IS A TODO
+# Assuming a simple in-memory user store for demonstration
+users = [
+    {"id": 1, "username": "alice", "email": "alice@example.com", "phone": "1234567890", "class": 2},
+    {"id": 2, "username": "bob", "email": "bob@example.com", "phone": "0987654321", "class": 1},
+    # Add more users as needed
+]
 
-def get_user_by_id(user_id: int, session: Session) -> models.User:
-    """Get user by ID"""
-    try:
-        user = session.exec(select(models.User).where(models.User.id == user_id)).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        return user
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.log(f"Error getting user {user_id}: {str(e)}", "error")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve user"
-        )
-
-def update_user(user_id: int, update_data: dict, session: Session) -> models.User:
-    """Update user information"""
-    try:
-        user = get_user_by_id(user_id, session)
-        
-        # Update fields
-        for key, value in update_data.items():
-            if hasattr(user, key) and key != "id":
-                setattr(user, key, value)
-        
-        user.updated_at = datetime.datetime.utcnow()
-        session.commit()
-        session.refresh(user)
-        
-        return user
-    except HTTPException:
-        raise
-    except Exception as e:
-        session.rollback()
-        logging.log(f"Error updating user {user_id}: {str(e)}", "error")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Failed to update user"
-        )
-
-def delete_user(user_id: int, session: Session) -> bool:
-    """Delete user"""
-    try:
-        user = get_user_by_id(user_id, session)
-        
-        # Delete user
-        session.delete(user)
-        session.commit()
-        
+def deleteUser(user_id):
+    """
+    Deletes a user from the system if their class is 2.
+    """
+    global users
+    user_to_delete = None
+    for user_in_list in users:
+        if user_in_list["id"] == user_id and user_in_list.get("class") == 2:
+            user_to_delete = user_in_list
+            break  # Found the user, no need to continue iterating
+    
+    if user_to_delete:
+        users.remove(user_to_delete)
+        logging.log(message=f"User {user_id} deleted.", type="info")
         return True
     except HTTPException:
         raise
