@@ -68,8 +68,6 @@ async def user_update_data(
     file: UploadFile = File(...),
     access_token: str = Query(None)
 ):
-=======
-async def user_update_data(user_id: str, data: str = Header(...), token: str = Depends(schemas.Token), file: UploadFile = File(None)):
     field = "name"
     data = "Lucas Roeder"
     contents = await file.read()
