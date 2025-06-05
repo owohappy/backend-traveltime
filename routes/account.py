@@ -117,7 +117,7 @@ def get_user_picture(user_id: str):
         raise HTTPException(status_code=400, detail="User ID is required.")
     if not data:
         raise HTTPException(status_code=400, detail="Data is required.")
-    return await account.process_headers(user_id, field, data, token) # type: ignore
+    return account.process_headers(user_id, field, data, token) # type: ignore
     if file != File(None):
         # If a file is provided, process it
         with open(f"uploads/{user_id +".jpg"}", "wb") as buffer:
