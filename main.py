@@ -8,7 +8,7 @@ from misc import logging, db
 import routes.travel
 import os
 import logging as log
-
+import ssl
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
@@ -16,7 +16,8 @@ def cls():
 cls()
 
 app = FastAPI(version="0.0.3", title="travelpoints API", description="API for travelpoints app", docs_url="/docs", redoc_url="/redoc")
-
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain('cert.pem', keyfile='key.pem')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
