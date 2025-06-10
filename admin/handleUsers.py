@@ -1,4 +1,8 @@
-from misc import logging
+from datetime import datetime
+from cairo import Status
+from fastapi import HTTPException
+from sqlmodel import Session
+from misc import logging, models
 
 #TODO: WHOLE FILE IS A TODO
 # Assuming a simple in-memory user store for demonstration
@@ -20,18 +24,18 @@ def deleteUser(user_id):
             break  # Found the user, no need to continue iterating
     
     if user_to_delete:
-        users.remove(user_to_delete)
-        logging.log(message=f"User {user_id} deleted.", type="info")
-        return True
-    except HTTPException:
-        raise
-    except Exception as e:
-        session.rollback()
-        logging.log(f"Error deleting user {user_id}: {str(e)}", "error")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete user"
-        )
+        try:
+            users.remove(user_to_delete)
+            logging.log(message=f"User {user_id} deleted.", type="info")
+            return True
+        except HTTPException:
+            return None
+        except Exception as e:
+            logging.log(f"Error deleting user {user_id}: {str(e)}", "error")
+            raise HTTPException(
+                status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR, # type: ignore
+                detail="Failed to delete user"
+            )
 
 def suspend_user(user_id: int, reason: str, session: Session) -> models.User:
     """Suspend a user account"""
@@ -39,14 +43,14 @@ def suspend_user(user_id: int, reason: str, session: Session) -> models.User:
         update_data = {
             "is_active": False,
             "suspension_reason": reason,
-            "suspended_at": datetime.datetime.utcnow()
+            "suspended_at": datetime.utcnow()
         }
         
-        return update_user(user_id, update_data, session)
+        return update_user(user_id, update_data, session) # type: ignore
     except Exception as e:
         logging.log(f"Error suspending user {user_id}: {str(e)}", "error")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, # type: ignore
             detail="Failed to suspend user"
         )
 
@@ -57,13 +61,13 @@ def reinstate_user(user_id: int, session: Session) -> models.User:
             "is_active": True,
             "suspension_reason": None,
             "suspended_at": None,
-            "reinstated_at": datetime.datetime.utcnow()
+            "reinstated_at": datetime.utcnow()
         }
         
-        return update_user(user_id, update_data, session)
+        return update_user(user_id, update_data, session) # type: ignore
     except Exception as e:
         logging.log(f"Error reinstating user {user_id}: {str(e)}", "error")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, # type: ignore
             detail="Failed to reinstate user"
         )

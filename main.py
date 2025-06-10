@@ -21,7 +21,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)ut
+)
 log.getLogger('passlib').setLevel(log.ERROR)
 
 config.load_config()
