@@ -22,18 +22,13 @@ def get_users_count(session: Session = Depends(db.get_session)):
 @app.get("/stats/leaderboard")
 def get_leaderboard(types: Optional[str] = None, session: Session = Depends(db.get_session)):
     """
-    Returns the leaderboard sorted by XP in descending order.
+    Returns the leaderboard sorted by points in descending order.
     Types: total, daily, weekly, monthly
     """
     try:
-        if types == "total" or types is None:
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursTotal))).all() # type: ignore
-        elif types == "daily":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursDaily))).all() # type: ignore
-        elif types == "weekly":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursWeekly))).all() # type: ignore
-        elif types == "monthly":
-            leaderboard = session.exec(select(models.UserHours).order_by(desc(models.UserHours.hoursMonthly))).all() # type: ignore
+        # For now, all types use the same points field from User model
+        if types in ["total", "daily", "weekly", "monthly"] or types is None:
+            leaderboard = session.exec(select(models.User).order_by(desc(models.User.points))).all() # type: ignore
         else:
             raise HTTPException(status_code=400, detail="Invalid type parameter")
     except Exception as e:
