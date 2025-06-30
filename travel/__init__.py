@@ -1,7 +1,6 @@
 import requests
 from shapely.geometry import Point, LineString
 import time
-import requests
 import json
 import os
 import math 
@@ -28,7 +27,7 @@ def fetch_transport_rest_routes():
                 routes.append(coords)
         return routes
     except Exception as e:
-        print(f"Error fetching from transport.rest: {e}")
+        print(f"Transport.rest error: {e}")
         return []
 
 def fetch_osm_routes_via_overpass():
@@ -52,18 +51,11 @@ def fetch_osm_routes_via_overpass():
                     routes.append(coords)
         return routes
     except Exception as e:
-        print(f"Error fetching from Overpass API: {e}")
+        print(f"Overpass API error: {e}")
         return []
 
 def decode_polyline(polyline_str):
-    # Placeholder: assumes Google's encoded polyline format
-    # Real decoding logic needed if using encoded polylines
-<<<<<<< HEAD
-    # Using parameter to avoid unused variable warning
-    if polyline_str:
-        pass
-=======
->>>>>>> 9ad7059 (Implement transport route fetching and caching functionality; add unit tests for route-related functions)
+    # TODO: implement proper polyline decoding
     return []
 
 def cache_routes(routes):
@@ -77,21 +69,16 @@ def load_cached_routes():
     return []
 
 def get_all_routes():
-    print("Fetching routes from APIs...")
+    print("Getting routes...")
     routes = []
     routes += fetch_transport_rest_routes()
     routes += fetch_osm_routes_via_overpass()
-    print(f"Fetched {len(routes)} routes.")
+    print(f"Got {len(routes)} routes")
     cache_routes(routes)
     return routes
 
-# Run once to cache routes locally
 routes = get_all_routes() if not os.path.exists(CACHE_FILE) else load_cached_routes()
 routes_lines = [LineString(r) for r in routes if len(r) > 1]
-
-routes_lines[:2]  # Show a sample of the cached LineStrings
-
-
 
 DEGREES_TO_METERS = 111139  
 ROUTE_WIDTH_METERS = 20     
@@ -99,7 +86,7 @@ RESAMPLE_EVERY_METERS = 10
 
 def interpolate_linestring(line: LineString, step_meters: float):
     total_length = line.length
-    step_fraction = step_meters / (DEGREES_TO_METERS * 1.0)  # convert to degrees length
+    step_fraction = step_meters / (DEGREES_TO_METERS * 1.0)
     num_points = math.ceil(total_length / step_fraction)
 
     points = [line.interpolate(i / num_points, normalized=True) for i in range(num_points + 1)]
@@ -113,7 +100,6 @@ def is_user_on_any_buffered_route(user_lat, user_lon, buffered_routes):
     user_point = Point(user_lat, user_lon)
     return any(buffer.contains(user_point) for buffer in buffered_routes)
 
-
 def get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000):
     radius_degrees = radius_meters / DEGREES_TO_METERS
     user_point = Point(user_lat, user_lon)
@@ -123,7 +109,7 @@ def get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000):
 
 def buffer_nearby_routes(user_lat, user_lon, routes_lines):
     nearby_routes = get_nearby_routes(user_lat, user_lon, routes_lines)
-    print(f"Found {len(nearby_routes)} nearby routes within 1 km")
+    print(f"Found {len(nearby_routes)} nearby routes")
 
     buffered = []
     for route in nearby_routes:
@@ -132,26 +118,11 @@ def buffer_nearby_routes(user_lat, user_lon, routes_lines):
         buffered.append(interpolated.buffer(buffer_radius))
     return buffered
 
-
 def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines):
     buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
     user_point = Point(user_lat, user_lon)
     return any(buf.contains(user_point) for buf in buffered_routes)
-<<<<<<< HEAD
-def gpsinput(user, lat, lon):
-    # Parameters and variables used in logging or future implementation
-    _ = user  # Acknowledge unused parameter
-    _ = time.time()  # Timestamp for potential logging
-    _ = Point(lat, lon)  # User point saved for reference
-    
-=======
-
-
 
 def gpsinput(user, lat, lon):
-    ts = time.time()
-    user_point = Point(lat, lon)
->>>>>>> 9ad7059 (Implement transport route fetching and caching functionality; add unit tests for route-related functions)
-    data = is_user_on_any_nearby_route(lat, lon, routes_lines)
-    return data
+    return is_user_on_any_nearby_route(lat, lon, routes_lines)
 

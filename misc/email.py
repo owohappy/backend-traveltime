@@ -6,7 +6,7 @@ from misc import logging
 import threading
 from misc import config
 
-jsonConfig = config.config
+cfg = config.config
 
 _DEFAULT_CIPHERS = (
     'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'
@@ -14,50 +14,34 @@ _DEFAULT_CIPHERS = (
     '!eNULL:!MD5'
 )
 
+email_enabled = cfg['email']['enabled']
+base_url = cfg['app']['baseURL']
+smtp_host = cfg['email']['smtp']['host']
+smtp_port = cfg['email']['smtp']['port']
+username = cfg['email']['smtp']['username']
+password = cfg['email']['smtp']['password']
+sender_email = cfg['email']['smtp']['senderEmail']
 
-# --- Configuration ---
-emailEnabled: bool = jsonConfig['email']['enabled']
-baseURL: str = jsonConfig['app']['baseURL']
-smtp_ser: str = jsonConfig['email']['smtp']['host']
-smtp_port: int = jsonConfig['email']['smtp']['port']
-username: str = jsonConfig['email']['smtp']['username']
-password:str = jsonConfig['email']['smtp']['password']
-sender_email: str = jsonConfig['email']['smtp']['senderEmail']
-subject_verifyEmail: str = jsonConfig['email']['subjects']['verifyEmail']
-subject_resetPassword: str = jsonConfig['email']['subjects']['resetPassword']
-subject_enableMFA: str = jsonConfig['email']['subjects']['enableMFA']
+server = None
 
-global server
+if not all([username, password, sender_email, smtp_port, smtp_host]):
+    level = "critical" if email_enabled else "info"
+    logging.log("Email config incomplete", level)
 
-
-
-
-if (username == "" or password == "" or sender_email == "" or smtp_port == "" or smtp_ser == ""):
-    if emailEnabled:
-        logging.log("Email configuration is not set up correctly. Please check your config.json file.", "critical")
-    else:
-        logging.log("Email configuration is not set up correctly. Please check your config.json file.", "info")
-
-
-
-
-if emailEnabled:
+if email_enabled:
     context = ssl._create_unverified_context()
-    server = smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context) # type: ignore
+    server = smtplib.SMTP_SSL(smtp_host, smtp_port, context=context)
     server.login(username, password)
 
-
-# --- Load HTML Template ---
 with open("misc/templates/emailVerify.html", "r", encoding="utf-8") as f:
-    html_template = f.read()
+    verify_template = f.read()
 
 with open("misc/templates/passwordReset.html", "r", encoding="utf-8") as f:
-    html_template2 = f.read()
+    reset_template = f.read()
 
-def sendEmail(user_id, subject, html, server=None):
-    """Send an email with proper error handling"""
-    if not emailEnabled:
-        logging.log(f"Email sending disabled. Would send to {user_id}: {subject}", "info")
+def send_email(user_id, subject, html, server=None):
+    if not email_enabled:
+        logging.log(f"Email disabled. Would send to {user_id}: {subject}", "info")
         return
         
     try:
@@ -70,7 +54,7 @@ def sendEmail(user_id, subject, html, server=None):
         
         if server is None:
             context = ssl._create_unverified_context()
-            with smtplib.SMTP_SSL(smtp_ser, smtp_port, context=context) as temp_server:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context) as temp_server:
                 temp_server.login(username, password)
                 temp_server.send_message(msg)
         else:
@@ -78,46 +62,43 @@ def sendEmail(user_id, subject, html, server=None):
             
         logging.log(f"Email sent to {user_id}", "info")
     except Exception as e:
-        logging.log(f"Failed to send email: {str(e)}", "error")
+        logging.log(f"Email failed: {e}", "error")
 
-def get_email_subject(subject_key: str) -> str:
-    """Get email subject from config or use default"""
-    email_subjects = jsonConfig.get('email', {}).get('subjects', {})
-    
+def get_subject(key):
+    subjects = cfg.get('email', {}).get('subjects', {})
     defaults = {
         'verification': "Verify Your Email",
-        'password_reset': "Password Reset Request",
-        'welcome': "Welcome to Our Service",
-        'notification': "New Notification"
+        'password_reset': "Password Reset",
+        'welcome': "Welcome",
+        'notification': "Notification"
     }
-    
-    return email_subjects.get(subject_key, defaults.get(subject_key, "Notification"))
+    return subjects.get(key, defaults.get(key, "Notification"))
 
-def sendVerifyEmail(user_id: str, verify: str):
-    url = f"{baseURL}/user/{user_id}/verify/{verify}"
-    html_content = html_template.replace("{{URL}}", url)
-    subject = get_email_subject('verification')
-    x = threading.Thread(target=sendEmail, args=(user_id, subject, html_content, server,))
-    x.start()   
+def send_verify_email(user_id, verify_code):
+    url = f"{base_url}/user/{user_id}/verify/{verify_code}"
+    html = verify_template.replace("{{URL}}", url)
+    subject = get_subject('verification')
+    t = threading.Thread(target=send_email, args=(user_id, subject, html, server))
+    t.start()   
 
-def sendPasswordResetEmail(user_id: str, verify: str, email:str):
-    url = f"{baseURL}/user/{user_id}/reset_pw/{verify}"
-    html_content = html_template2.replace("{{URL}}", url)
-    subject = get_email_subject('password_reset')
-    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
-    x.start()   
+def send_password_reset_email(user_id, verify_code, email):
+    url = f"{base_url}/user/{user_id}/reset_pw/{verify_code}"
+    html = reset_template.replace("{{URL}}", url)
+    subject = get_subject('password_reset')
+    t = threading.Thread(target=send_email, args=(email, subject, html, server))
+    t.start()   
 
-def send2FAEnableEmail(user_id: str, verify: str, email:str):
-    url = f"{baseURL}/user/{user_id}/2fa/enable/{verify}"
-    html_content = html_template2.replace("{{URL}}", url)
-    subject = get_email_subject('enableMFA')
-    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
-    x.start()
+def send_2fa_enable_email(user_id, verify_code, email):
+    url = f"{base_url}/user/{user_id}/2fa/enable/{verify_code}"
+    html = reset_template.replace("{{URL}}", url)
+    subject = get_subject('enableMFA')
+    t = threading.Thread(target=send_email, args=(email, subject, html, server))
+    t.start()
 
-def sendRewardEmail(user_id: str, reward: str, email:str):
-    url = f"{baseURL}/user/{user_id}/reward/{reward}"
-    html_content = html_template2.replace("{{URL}}", url)
-    subject = get_email_subject('reward')
-    x = threading.Thread(target=sendEmail, args=(email, subject, html_content, server,))
-    x.start()
+def send_reward_email(user_id, reward, email):
+    url = f"{base_url}/user/{user_id}/reward/{reward}"
+    html = reset_template.replace("{{URL}}", url)
+    subject = get_subject('reward')
+    t = threading.Thread(target=send_email, args=(email, subject, html, server))
+    t.start()
 

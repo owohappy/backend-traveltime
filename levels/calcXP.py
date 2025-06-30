@@ -3,12 +3,10 @@ from misc import models, logging, db
 
 
 def calcXP(user_id, minutes, session=None):
-    """
-    Calculate the XP for a user
-    """
-    logging.log(f"Calculating XP for user {user_id}...", "info")
+    """Calculate XP for a user based on travel time"""
+    logging.log(f"Adding XP for user {user_id}", "info")
     
-    # Get a session if not provided
+    # Get session if not provided
     close_session = False
     if not session:
         from misc import db
@@ -22,17 +20,17 @@ def calcXP(user_id, minutes, session=None):
             logging.log(f"User {user_id} not found.", "warning")
             return False
         
-        # Calculate and apply the XP
+        # Apply XP
         xp_to_add = int(minutes)
         user.xp += xp_to_add
         
-        # Update the level if needed
+        # Level up if needed
         new_level = calculate_level(user.xp)
         if new_level > user.level:
             user.level = new_level
             logging.log(f"User {user_id} leveled up to {new_level}!", "info")
         
-        # Commit the changes
+        # Save changes
         session.add(user)
         session.commit()
         
@@ -48,6 +46,6 @@ def calcXP(user_id, minutes, session=None):
             session.close()
             
 def calculate_level(xp):
-    """Calculate level from XP using a logarithmic formula"""
+    """Calculate level from XP"""
     import math
     return max(1, int(math.log(xp + 100, 1.5)))

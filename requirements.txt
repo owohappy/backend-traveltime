@@ -8,3 +8,4 @@ pyotp
 colorama
 shapely
 pydantic[email]
+python-multipart

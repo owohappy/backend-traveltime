@@ -2,63 +2,32 @@ import datetime
 from colorama import Fore, Back, Style
 import os
 
-def write_to_file(filename, line_of_text):
-    # Check if the file exists
-    if not os.path.exists(filename):
-        # Create the file and write the line
-        with open(filename, 'w') as file:
-            file.write(line_of_text + '\n')
-    else:
-        # Append to the existing file
-        with open(filename, 'a') as file:
-            file.write(line_of_text + '\n')
+def write_to_file(filename, text):
+    mode = 'a' if os.path.exists(filename) else 'w'
+    with open(filename, mode) as f:
+        f.write(text + '\n')
 
-logfilename =  "log/" + str(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')) + ".txt"
+logfilename = f"log/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.txt"
 
-def log(message: str, type:str = "error"):
-    '''
-    message: str
-    type:str
-    Possible types: 
-        error = logging for error
-        warning = logging for warning
-        info = logging for info 
-        debug = logging for debug
-        critical = logging for critical
-        success = logging for success
-    '''
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-
-    if (type == "error"):
-        data = f"[{current_time}] {Fore.RED} {type}: {Fore.WHITE} {message}"
-        print(data)
-        write_to_file(logfilename, data)
-        return None
-    if (type == "warning"):
-        data = f"[{current_time}] {Fore.YELLOW} {type}:{Fore.WHITE} {message}"
-        print(data)
-        write_to_file(logfilename, data)
-        return None
-    if (type == "info"):
-        data = f"[{current_time}] {Fore.CYAN} {type}:{Fore.WHITE} {message}"
-        print(data)
-        write_to_file(logfilename, data)
-        return None
-    if (type == "debug"):
-        data = f"[{current_time}] {Fore.BLUE} {type}:{Fore.WHITE} {message}"
-        print(data)
-        write_to_file(logfilename, data)
-        return None
-    if (type == "critical"):
-        data = f"[{current_time}] {Fore.RED} {type}:{Fore.RED} {message}"
-        print(data)
-        write_to_file(logfilename, data)
+def log(message: str, level: str = "error"):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    
+    colors = {
+        "error": Fore.RED,
+        "warning": Fore.YELLOW,
+        "info": Fore.CYAN,
+        "debug": Fore.BLUE,
+        "critical": Fore.RED,
+        "success": Fore.GREEN
+    }
+    
+    color = colors.get(level, Fore.WHITE)
+    data = f"[{timestamp}] {color} {level}:{Fore.WHITE} {message}"
+    
+    print(data)
+    write_to_file(logfilename, data)
+    
+    if level == "critical":
         exit(1)
-        return None
-    if (type == "success"):
-        data = f"[{current_time}] {Fore.GREEN} {type}:{Fore.WHITE} {message}"
-        print(data)
-        write_to_file(logfilename, data)
-        return None
     
         

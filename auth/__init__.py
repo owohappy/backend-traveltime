@@ -85,7 +85,7 @@ async def register(
 
         # Send verification email
         if not DEBUG:
-            email.sendVerfyEmail(new_user.email, verification_token) # type: ignore
+            email.send_verify_email(new_user.email, verification_token)
         else:
             logging.log(f"Verification URL: {BASE_URL}/verify-email/{verification_token}", "debug")
 
@@ -188,7 +188,7 @@ async def initiate_password_reset(
 
         if not DEBUG:
             # Send actual email
-            email.sendPasswordResetEmail(email, reset_url) # type: ignore
+            email.send_password_reset_email(user.id, reset_token, email)
         else:
             # Log URL for debugging
             logging.log(f"Password reset URL: {reset_url}", "debug")
@@ -328,7 +328,7 @@ async def request_email_verification(
         verification_url = f"{BASE_URL}/verify-email/{verification_token}"
 
         if not DEBUG:
-            email.sendVerfyEmail(current_user.email, verification_url) # type: ignore
+            email.send_verify_email(current_user.email, verification_token)
         else:
             logging.log(f"Verification URL: {verification_url}", "debug")
 

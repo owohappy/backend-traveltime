@@ -6,55 +6,28 @@ import auth
 
 app = APIRouter(tags=["Authentication"])
 
-# ======================
-# Core Authentication Routes
-# ======================
-
 @app.post("/register", 
           response_model=schemas.Token,
-          status_code=status.HTTP_201_CREATED,
-          summary="Register a new user",
-          description="Creates a new user account and returns an access token")
+          status_code=status.HTTP_201_CREATED)
 async def register(
     user: schemas.UserCreate,
     session: Session = Depends(db.get_session)
 ):
-    """Register a new user in the system"""
-    return await auth.register(user, session) # type: ignore
+    return await auth.register(user, session)
 
-
-
-
-
-@app.post("/login",
-          response_model=schemas.Token,
-          summary="User login",
-          description="Authenticates user credentials and returns tokens")
+@app.post("/login", response_model=schemas.Token)
 async def login(
     credentials: schemas.UserLogin,
     session: Session = Depends(db.get_session)
 ):
-    """Authenticate user and return access token"""
-    return await auth.login(credentials, session) # type: ignore
+    return await auth.login(credentials, session)
 
-
-
-@app.post("/logout",
-          summary="User logout",
-          description="Invalidates the current access token")
+@app.post("/logout")
 async def logout(token: str = Depends(schemas.oauth2_scheme)):
-    """Invalidate user's access token"""
     return await auth.logout(token)
 
-
-
-# ======================
-# Token Refresh
-# ======================
 @app.post("/refresh-token",
-          response_model=schemas.Token,
-          summary="Refresh access token",
-          description="Generates a new access token using the refresh token")
+          response_model=schemas.Token)
 async def refresh_token(
     token: str = Depends(schemas.oauth2_scheme),
     session: Session = Depends(db.get_session)
@@ -75,57 +48,35 @@ async def check_token(
         payload = await auth.check_token(access_token.access_token)
         print(access_token)
         if not payload:
-            response.status_code = status.HTTP_404_NOT_FOUND
+            response.status_code = 404
             return {"valid": False, "error": "Token not found"}
         else:
             return {"valid": True}
     except Exception as e:
             return {"valid": False, "error": str(e)}
 
-# ======================
-# Password Management
-# ======================
-@app.post("/password-reset/initiate",
-          summary="Initiate password reset",
-          description="Sends password reset instructions to registered email")
+@app.post("/password-reset/initiate")
 async def initiate_password_reset(
     email: str,
     session: Session = Depends(db.get_session)
 ):
-    """Initiate password reset process"""
     return await auth.initiate_password_reset(email, session) # type: ignore
 
-
-
-@app.post("/password-reset/confirm",
-          summary="Confirm password reset",
-          description="Complete password reset process with verification token")
+@app.post("/password-reset/confirm")
 async def confirm_password_reset(
     reset_data: schemas.PasswordResetConfirm,
     session: Session = Depends(db.get_session)
 ):
-    """Finalize password reset with new password"""
     return await auth.confirm_password_reset(reset_data, session) # type: ignore
 
-
-# ======================
-# Email Verification
-# ======================
-
-@app.get("/verify-email/{token}",
-         summary="Verify email address",
-         description="Confirm user's email address using verification token")
+@app.get("/verify-email/{token}")
 async def verify_email(
     token: str,
     session: Session = Depends(db.get_session)
 ):
-    """Verify user's email address"""
     return await auth.verify_email(token, session) # type: ignore
 
-
-@app.post("/resend-verification",
-          summary="Resend email verification",
-          description="Sends a new verification email to the user")
+@app.post("/resend-verification")
 async def resend_verification(
     email: str,
     session: Session = Depends(db.get_session)

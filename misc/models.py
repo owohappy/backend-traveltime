@@ -3,10 +3,14 @@ from typing import List, Optional
 from datetime import datetime 
 from sqlalchemy.dialects.sqlite import JSON
 
-# === Database Model ===
+from sqlmodel import SQLModel, Field, Column
+from typing import List, Optional
+from datetime import datetime 
+from sqlalchemy.dialects.sqlite import JSON
+
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    email: str = Field(unique=True, index=True, max_length=320)  # 320 is max per spec
+    email: str = Field(unique=True, index=True, max_length=320)
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     email_verified: bool = Field(default=False)

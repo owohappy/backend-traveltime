@@ -47,3 +47,20 @@ class MFAVerification(BaseModel):
     user_id: str
     mfa_code: str
     timestamp: str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+# Gambling Schemas
+class GambleGameCreate(BaseModel):
+    bet_amount: float
+
+class GambleGameAction(BaseModel):
+    game_id: str
+    action: str  # "hit", "stand", "double_down"
+
+class GambleGame(BaseModel):
+    game_id: str
+    player_cards: list
+    dealer_cards: list
+    bet_amount: float
+    status: str  # "active", "won", "lost", "push"
+    player_total: int
+    dealer_total: int

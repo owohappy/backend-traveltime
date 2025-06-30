@@ -57,6 +57,24 @@ An app that rewards users for taking public transportation instead of cars. The 
 
 2. Access the application at `http://localhost:8000`
 
+### Production Deployment
+
+1. Copy environment variables:
+     ```bash
+     cp .env.example .env
+     # Edit .env with your production values
+     ```
+
+2. Build for production:
+     ```bash
+     docker-compose up -d --build
+     ```
+
+3. Or run with production script:
+     ```bash
+     ./start_production.sh
+     ```
+
 ## Project Structure
 
 - **auth/**: Authentication and user management
