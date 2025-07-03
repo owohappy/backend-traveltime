@@ -22,7 +22,11 @@ class LocationPing(BaseModel):
     user_id: str
     latitude: float
     longitude: float
-    timestamp: str
+    timestamp: Optional[str] = None  # ISO format 
+    accuracy: Optional[float] = None 
+    altitude: Optional[float] = None  
+    speed: Optional[float] = None  # m/s
+    bearing: Optional[float] = None  
 
 class oauth2_scheme(BaseModel):
     client_id: str
