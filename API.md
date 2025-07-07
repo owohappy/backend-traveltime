@@ -141,6 +141,64 @@
 
 ---
 
+## Analytics and Insights
+
+### Popular Routes Analytics
+- **Endpoint:** `GET /analytics/popular-routes?limit={number}`
+- **Query Params:** `limit` (optional, default: 10, max: 50)
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get most popular transportation routes based on usage analytics.
+- **Response:** Popular routes list with usage statistics, route details, and confidence scores.
+- **Codebase:** `routes/travel.py`
+
+### Operator Statistics
+- **Endpoint:** `GET /analytics/operator-stats`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get comprehensive transportation operator statistics including market share and transport type distribution.
+- **Response:** Operator analytics with route counts, transport types, and market share percentages.
+- **Codebase:** `routes/travel.py`
+
+### Transport Pattern Analytics
+- **Endpoint:** `GET /analytics/transport-patterns`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get learned transport patterns and type detection analytics including speed profiles and confidence scores.
+- **Response:** Transport patterns with detection accuracy, learning statistics, and confidence metrics.
+- **Codebase:** `routes/travel.py`
+
+### User Travel Insights
+- **Endpoint:** `GET /analytics/user/{user_id}/travel-insights`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get personalized travel insights and analytics for a specific user including travel patterns, preferences, and efficiency metrics.
+- **Response:** Comprehensive user travel analytics with patterns, preferences, and personalized recommendations.
+- **Codebase:** `routes/travel.py`
+
+### Analytics Dashboard
+- **Endpoint:** `GET /analytics/dashboard`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get comprehensive analytics dashboard data for admin monitoring including system health, popular routes, and real-time statistics.
+- **Response:** Complete analytics dashboard with system metrics, transport patterns, and performance indicators.
+- **Codebase:** `routes/travel.py`
+
+---
+
+## Admin Operations
+
+### Route Cache Refresh
+- **Endpoint:** `POST /admin/routes/refresh`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Force refresh of transportation route cache from all configured APIs.
+- **Response:** Cache refresh status with duration and route count.
+- **Codebase:** `routes/travel.py`
+
+### Route Cache Status
+- **Endpoint:** `GET /admin/routes/status`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get detailed route cache status and performance metrics.
+- **Response:** Cache status, route manager statistics, and performance metrics.
+- **Codebase:** `routes/travel.py`
+
+---
+
 ## Implementation Notes
 
 - All endpoints requiring authentication expect a JWT Bearer token in the `Authorization` header.
