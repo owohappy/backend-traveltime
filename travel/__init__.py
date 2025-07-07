@@ -478,8 +478,190 @@ def update_route_cache(force_update=False):
     print(f"Route cache updated with {len(routes)} routes")
     return len(routes)
 
-routes = get_all_routes() if not os.path.exists(CACHE_FILE) else load_cached_routes()
-routes_lines = [LineString(r) for r in routes if len(r) > 1]
+class RouteManager:
+    """
+    Efficient route management with lazy loading and spatial indexing.
+    """
+    
+    def __init__(self):
+        self._routes = None
+        self._routes_lines = None
+        self._spatial_index = {}
+        self._loaded = False
+        self._cache_file = CACHE_FILE
+        
+    def _load_routes(self):
+        """Lazy load routes only when needed."""
+        if self._loaded:
+            return
+            
+        print("Loading routes...")
+        
+        if os.path.exists(self._cache_file):
+            print("Loading routes from cache...")
+            try:
+                with open(self._cache_file, "r") as f:
+                    cache_data = json.load(f)
+                
+                # Check if cache is too old (older than 7 days)
+                cache_age = time.time() - cache_data.get("cache_created", 0)
+                if cache_age > 7 * 24 * 3600:  # 7 days
+                    print("Cache is outdated, fetching fresh routes...")
+                    self._routes = get_all_routes()
+                    self._update_cache()
+                else:
+                    self._routes = cache_data.get("routes", [])
+                    print(f"Loaded {len(self._routes)} routes from cache")
+                    
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Cache file corrupted, fetching fresh routes: {e}")
+                self._routes = get_all_routes()
+                self._update_cache()
+        else:
+            print("No cache found, fetching routes from APIs...")
+            self._routes = get_all_routes()
+            self._update_cache()
+        
+        # Convert to LineString objects
+        self._routes_lines = []
+        for i, route in enumerate(self._routes):
+            if len(route) > 1:
+                try:
+                    line = LineString(route)
+                    self._routes_lines.append(line)
+                except Exception as e:
+                    print(f"Error creating LineString for route {i}: {e}")
+                    continue
+        
+        # Build spatial index for faster lookups
+        self._build_spatial_index()
+        
+        self._loaded = True
+        print(f"Route loading complete: {len(self._routes_lines)} valid routes")
+    
+    def _update_cache(self):
+        """Update the route cache file."""
+        cache_data = {
+            "routes": self._routes,
+            "cache_created": time.time(),
+            "total_routes": len(self._routes),
+            "version": "2.0"
+        }
+        
+        try:
+            with open(self._cache_file, "w") as f:
+                json.dump(cache_data, f)
+            print(f"Cache updated with {len(self._routes)} routes")
+        except Exception as e:
+            print(f"Failed to update cache: {e}")
+    
+    def _build_spatial_index(self):
+        """Build a spatial index for faster route lookups."""
+        print("Building spatial index...")
+        
+        # Create a grid-based spatial index
+        grid_size = 0.01  # ~1km grid cells
+        
+        for i, line in enumerate(self._routes_lines):
+            try:
+                bounds = line.bounds  # (minx, miny, maxx, maxy)
+                
+                # Calculate grid cells that this route intersects
+                min_grid_x = int(bounds[0] / grid_size)
+                max_grid_x = int(bounds[2] / grid_size)
+                min_grid_y = int(bounds[1] / grid_size)
+                max_grid_y = int(bounds[3] / grid_size)
+                
+                # Add route to all intersecting grid cells
+                for gx in range(min_grid_x, max_grid_x + 1):
+                    for gy in range(min_grid_y, max_grid_y + 1):
+                        grid_key = (gx, gy)
+                        if grid_key not in self._spatial_index:
+                            self._spatial_index[grid_key] = []
+                        self._spatial_index[grid_key].append(i)
+                        
+            except Exception as e:
+                print(f"Error indexing route {i}: {e}")
+                continue
+        
+        print(f"Spatial index built with {len(self._spatial_index)} grid cells")
+    
+    def get_nearby_routes_optimized(self, lat, lon, radius_meters=1000):
+        """
+        Get nearby routes using spatial index for better performance.
+        """
+        self._load_routes()
+        
+        if not self._routes_lines:
+            return []
+        
+        # Convert radius to degrees (approximate)
+        radius_degrees = radius_meters / DEGREES_TO_METERS
+        grid_size = 0.01
+        
+        # Calculate which grid cells to check
+        grid_range = max(1, int(radius_degrees / grid_size) + 1)
+        center_grid_x = int(lat / grid_size)
+        center_grid_y = int(lon / grid_size)
+        
+        candidate_routes = set()
+        
+        # Check nearby grid cells
+        for gx in range(center_grid_x - grid_range, center_grid_x + grid_range + 1):
+            for gy in range(center_grid_y - grid_range, center_grid_y + grid_range + 1):
+                grid_key = (gx, gy)
+                if grid_key in self._spatial_index:
+                    candidate_routes.update(self._spatial_index[grid_key])
+        
+        # Filter candidates by actual distance
+        user_point = Point(lat, lon)
+        user_area = user_point.buffer(radius_degrees)
+        
+        nearby_routes = []
+        for route_idx in candidate_routes:
+            try:
+                if route_idx < len(self._routes_lines):
+                    route = self._routes_lines[route_idx]
+                    if route.intersects(user_area):
+                        nearby_routes.append(route)
+            except Exception as e:
+                print(f"Error checking route {route_idx}: {e}")
+                continue
+        
+        return nearby_routes
+    
+    def get_routes_lines(self):
+        """Get all route lines (loads routes if not already loaded)."""
+        self._load_routes()
+        return self._routes_lines
+    
+    def get_routes_count(self):
+        """Get total number of routes."""
+        self._load_routes()
+        return len(self._routes_lines)
+    
+    def refresh_cache(self):
+        """Force refresh of route cache."""
+        print("Forcing route cache refresh...")
+        self._routes = get_all_routes()
+        self._update_cache()
+        self._routes_lines = None
+        self._spatial_index = {}
+        self._loaded = False
+        self._load_routes()
+
+# Global route manager instance
+route_manager = RouteManager()
+
+# Legacy compatibility functions
+def get_routes():
+    """Get raw route data for backwards compatibility."""
+    route_manager._load_routes()
+    return route_manager._routes or []
+
+def get_routes_lines():
+    """Get route LineString objects for backwards compatibility."""
+    return route_manager.get_routes_lines()
 
 DEGREES_TO_METERS = 111139  
 ROUTE_WIDTH_METERS = 20     
@@ -501,28 +683,36 @@ def is_user_on_any_buffered_route(user_lat, user_lon, buffered_routes):
     user_point = Point(user_lat, user_lon)
     return any(buffer.contains(user_point) for buffer in buffered_routes)
 
-def get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000):
-    radius_degrees = radius_meters / DEGREES_TO_METERS
-    user_point = Point(user_lat, user_lon)
-    user_area = user_point.buffer(radius_degrees)
+def get_nearby_routes(user_lat, user_lon, routes_lines=None, radius_meters=1000):
+    """
+    Get routes near a user location.
+    Now uses optimized spatial indexing for better performance.
+    """
+    return route_manager.get_nearby_routes_optimized(user_lat, user_lon, radius_meters)
 
-    return [route for route in routes_lines if route.intersects(user_area)]
-
-def buffer_nearby_routes(user_lat, user_lon, routes_lines):
-    nearby_routes = get_nearby_routes(user_lat, user_lon, routes_lines)
+def buffer_nearby_routes(user_lat, user_lon, routes_lines=None):
+    nearby_routes = get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000)
     print(f"Found {len(nearby_routes)} nearby routes")
 
     buffered = []
     for route in nearby_routes:
-        interpolated = interpolate_linestring(route, RESAMPLE_EVERY_METERS)
-        buffer_radius = ROUTE_WIDTH_METERS / DEGREES_TO_METERS
-        buffered.append(interpolated.buffer(buffer_radius))
+        try:
+            interpolated = interpolate_linestring(route, RESAMPLE_EVERY_METERS)
+            buffer_radius = ROUTE_WIDTH_METERS / DEGREES_TO_METERS
+            buffered.append(interpolated.buffer(buffer_radius))
+        except Exception as e:
+            print(f"Error buffering route: {e}")
+            continue
     return buffered
 
-def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines):
-    buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
-    user_point = Point(user_lat, user_lon)
-    return any(buf.contains(user_point) for buf in buffered_routes)
+def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines=None):
+    try:
+        buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
+        user_point = Point(user_lat, user_lon)
+        return any(buf.contains(user_point) for buf in buffered_routes)
+    except Exception as e:
+        print(f"Error checking if user is on route: {e}")
+        return False
 
 def gpsinput(user_id, lat, lon, timestamp=None):
     """
@@ -582,7 +772,7 @@ def gpsinput(user_id, lat, lon, timestamp=None):
     
     # Check if user is on any transportation route
     try:
-        is_on_route = is_user_on_any_nearby_route(lat, lon, routes_lines)
+        is_on_route = is_user_on_any_nearby_route(lat, lon)
     except Exception as e:
         print(f"Error checking route proximity: {e}")
         is_on_route = False
@@ -775,12 +965,16 @@ def detect_transport_type(lat, lon):
     Detect the type of public transport based on location and nearby routes
     This is a simplified implementation - could be enhanced with route metadata
     """
-    nearby_routes = get_nearby_routes(lat, lon, routes_lines, radius_meters=100)
-    
-    if not nearby_routes:
-        return "unknown"
-    
-    return "bus"  # need to add type 
+    try:
+        nearby_routes = get_nearby_routes(lat, lon, radius_meters=100)
+        
+        if not nearby_routes:
+            return "unknown"
+        
+        return "bus"  # Could be enhanced to return "train", "tram", "ferry", etc.
+    except Exception as e:
+        print(f"Error detecting transport type: {e}")
+        return "unknown" 
 
 
 def get_user_travel_stats(user_id, timeframe="daily"):

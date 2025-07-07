@@ -424,10 +424,10 @@ async def get_nearby_routes(latitude: float, longitude: float, radius: int = 100
         radius = max(50, min(radius, 5000))
         
         # Get nearby routes using the travel module
-        nearby_routes = travel.get_nearby_routes(latitude, longitude, travel.routes_lines, radius)
+        nearby_routes = travel.get_nearby_routes(latitude, longitude, radius_meters=radius)
         
         # Check if user would be considered "on route" at this location
-        on_route = travel.is_user_on_any_nearby_route(latitude, longitude, travel.routes_lines)
+        on_route = travel.is_user_on_any_nearby_route(latitude, longitude)
         
         # Detect likely transport type
         transport_type = travel.detect_transport_type(latitude, longitude)
@@ -471,5 +471,146 @@ async def get_nearby_routes(latitude: float, longitude: float, radius: int = 100
             error_response["type"] = type(e).__name__
         else:
             error_response["message"] = "An internal server error occurred. Please try again later."
+            
+        return error_response
+
+
+@app.post("/admin/routes/refresh")
+async def refresh_route_cache(request: Request):
+    """
+    Admin endpoint to refresh the route cache.
+    
+    This endpoint forces a refresh of the transportation route data from all
+    configured APIs and rebuilds the spatial index for better performance.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with cache refresh status
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Force refresh the route cache
+        start_time = datetime.utcnow()
+        travel.route_manager.refresh_cache()
+        end_time = datetime.utcnow()
+        
+        refresh_duration = (end_time - start_time).total_seconds()
+        route_count = travel.route_manager.get_routes_count()
+        
+        return {
+            "success": True,
+            "data": {
+                "refresh_duration_seconds": refresh_duration,
+                "total_routes_loaded": route_count,
+                "cache_updated": end_time.isoformat(),
+                "spatial_index_rebuilt": True
+            },
+            "timestamp": end_time.isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to refresh route cache. Please try again later."
+            
+        return error_response
+
+
+@app.get("/admin/routes/status")
+async def get_route_cache_status(request: Request):
+    """
+    Admin endpoint to get route cache status and statistics.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with route cache status and performance metrics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token", 
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        import os
+        
+        cache_file = travel.CACHE_FILE
+        cache_exists = os.path.exists(cache_file)
+        cache_size = 0
+        cache_modified = None
+        
+        if cache_exists:
+            cache_size = os.path.getsize(cache_file)
+            cache_modified = datetime.fromtimestamp(os.path.getmtime(cache_file))
+        
+        # Get route manager stats
+        route_count = travel.route_manager.get_routes_count() if travel.route_manager._loaded else 0
+        is_loaded = travel.route_manager._loaded
+        spatial_index_size = len(travel.route_manager._spatial_index) if is_loaded else 0
+        
+        response_data = {
+            "cache_status": {
+                "file_exists": cache_exists,
+                "file_size_bytes": cache_size,
+                "file_size_mb": round(cache_size / (1024 * 1024), 2),
+                "last_modified": cache_modified.isoformat() if cache_modified else None,
+                "age_hours": round((datetime.utcnow() - cache_modified).total_seconds() / 3600, 1) if cache_modified else None
+            },
+            "route_manager": {
+                "routes_loaded": is_loaded,
+                "total_routes": route_count,
+                "spatial_index_cells": spatial_index_size,
+                "memory_usage_estimated_mb": round((route_count * 0.5 + spatial_index_size * 0.1), 2)
+            },
+            "performance": {
+                "cache_file_path": cache_file,
+                "lazy_loading_enabled": True,
+                "spatial_indexing_enabled": True
+            }
+        }
+        
+        return {
+            "success": True,
+            "data": response_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get route status. Please try again later."
             
         return error_response
