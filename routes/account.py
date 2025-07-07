@@ -1,8 +1,6 @@
-# main.py
 from fastapi import APIRouter, Depends, Form, HTTPException, Header, File, Query, UploadFile
 from fastapi.responses import FileResponse
 import shutil
-from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile
 from sqlmodel import Session
 from auth.accountManagment import get_current_user
 from misc import db, schemas
@@ -12,32 +10,27 @@ import auth
 import account
 
 app = APIRouter(tags=["account"])
-jsonConfig = config.config
-debugBool = jsonConfig['app']['debug']
-nameDB = jsonConfig['app']['nameDB']
+config_data = config.config
+debug_mode = config_data['app']['debug']
+db_name = config_data['app']['nameDB']
 
 
 @app.get("/user/{user_id}/points")
 def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
-    '''
-    Call to get current points of a UserID with role-based token authentication
-    '''
     try:
-        # Extract roles from the current_user
         roles = current_user.get("roles", [])
         user_id_from_token = current_user.get("sub")
         
-        # Check if user is accessing their own data or has admin role
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=403, 
                 detail="You can only access your own points unless you have admin privileges."
             )
             
-        points = travel.get_user_points(user_id) # type: ignore
+        points = travel.get_user_points(user_id)
         return {"points": points, "user_id": user_id}
     except Exception as e:
-        if debugBool:
+        if debug_mode:
             logging.log("Error getting points: " + str(e), "error")
             raise HTTPException(status_code=500, detail="Error getting points: " + str(e))
         else:
@@ -46,10 +39,6 @@ def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
     
 @app.get("/user/{user_id}/getData")
 def user_get_data(user_id: str, token: str = Depends(schemas.Token), session: Session = Depends(db.get_session)):
-    '''
-    Allowing users to get their data 
-    '''
-    # get user from DB
     user = account.user_get_data(user_id,session)
     return user
 
@@ -107,3 +96,22 @@ def get_user_picture(user_id: str):
     except Exception as e:
         logging.log(f"Error retrieving profile picture for user {user_id}: {str(e)}", "error")
         raise HTTPException(status_code=500, detail="Error retrieving profile picture.")
+    if not field or not data:
+        raise HTTPException(status_code=400, detail="Field and data headers are required.")
+    if field not in ["name", "email", "password", "profile_picture"]:
+        raise HTTPException(status_code=400, detail="Invalid field specified.")
+    # Process the update using the account module
+    if not token:
+        raise HTTPException(status_code=401, detail="Token is required.")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required.")
+    if not data:
+        raise HTTPException(status_code=400, detail="Data is required.")
+    return account.process_headers(user_id, field, data, token) # type: ignore
+    if file != File(None):
+        # If a file is provided, process it
+        with open(f"uploads/{user_id +".jpg"}", "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    
+    return None
+

@@ -81,12 +81,35 @@
 
 ## Travel Tracking
 
-### Heartbeat (GPS Location)
+### GPS Location Tracking (Enhanced)
+- **Endpoint:** `POST /gps/track/{user_id}`
+- **Body:** `LocationPing` schema (enhanced with accuracy, altitude, speed, bearing)
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Primary GPS tracking endpoint for monitoring public transport usage. Tracks travel sessions, calculates duration/distance, awards XP, and detects transport type.
+- **Response:** Detailed travel status, session info, location data, rewards, and daily stats
+- **Codebase:** `routes/travel.py`, `travel/__init__.py`
+
+### GPS Tracking Status
+- **Endpoint:** `GET /gps/status/{user_id}`
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Get current tracking status without submitting new location data. Returns active session info and travel statistics.
+- **Response:** Current session status, travel statistics (daily/weekly/monthly), user profile
+- **Codebase:** `routes/travel.py`
+
+### Nearby Routes Discovery
+- **Endpoint:** `GET /gps/routes/nearby?latitude={lat}&longitude={lon}&radius={meters}`
+- **Query Params:** `latitude`, `longitude`, `radius` (optional, max 5000m)
+- **Header:** `Authorization: Bearer <token>`
+- **Description:** Discover nearby public transportation routes and check transport availability.
+- **Response:** Route analysis, transport type detection, nearby routes list
+- **Codebase:** `routes/travel.py`, `travel/__init__.py`
+
+### Heartbeat (Legacy)
 - **Endpoint:** `POST /heartbeat/{user_id}`
 - **Body:** `LocationPing` schema
 - **Header:** `Authorization: Bearer <token>`
-- **Description:** Send GPS ping to estimate current route.
-- **Codebase:** `travel/tracking.py`
+- **Description:** Legacy GPS ping endpoint. **DEPRECATED** - use `/gps/track/{user_id}` instead.
+- **Codebase:** `routes/travel.py`
 
 ### Travel Confirmation
 - **Endpoint:** `POST /user/{user_id}/confirm_travel/{travel_id}`

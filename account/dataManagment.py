@@ -2,19 +2,15 @@ from misc import models, logging
 from sqlmodel import Session, select
 from fastapi import HTTPException, status, File, UploadFile
 from misc import db, schemas
+
 def get_user_data(user_id: str, session: Session):
-    points: int = 0
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
         logging.log(f"User {user_id} not found", "warning")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
-    if user.points is not None:
-        points = user.points
+    points = user.points if user.points else 0
 
-
-    
-    # Return user data except sensitive fields
     return {
         "id": user.id,
         "email": user.email,
@@ -27,20 +23,20 @@ def get_user_data(user_id: str, session: Session):
         "mfa": user.mfa,
         "pfp_url": user.pfp_url,
         "points": points,
-        
     }
 
 def update_user_data(user_id: str, field: str, data: str, file, session: Session):
-    session = db.get_session()
     user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
     if not user:
         logging.log(f"User {user_id} not found", "warning")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    # Only allow updating certain fields
+        raise HTTPException(status_code=404, detail="User not found")
+    
     allowed_fields = {"name", "phonenumber", "address"}
-    if (field not in allowed_fields and file == None):
-        raise HTTPException(status_code=400, detail="Field not allowed to be updated")
-    if file != None:
+    if field not in allowed_fields and file is None:
+        raise HTTPException(status_code=400, detail="Field not allowed")
+    
+    if file:
+        # simple file upload for profile pics
         file_location = f"misc/templates/pfp/{user_id}.jpg"
         with open(file_location, "wb") as buffer:
             buffer.write(file)
@@ -49,6 +45,7 @@ def update_user_data(user_id: str, field: str, data: str, file, session: Session
         session.commit()
         session.refresh(user)
         return {"success": True, "updated_field": "pfp_url", "new_value": file_location}
+    
     setattr(user, field, data)
     session.add(user)
     session.commit()
@@ -58,36 +55,37 @@ def update_user_data(user_id: str, field: str, data: str, file, session: Session
 def get_user_data_hours(user_id: str, session: Session):
     user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first() # type: ignore
     if not user_hours:
-        logging.log(f"User {user_id} not found", "warning")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        logging.log(f"User {user_id} hours not found", "warning")
+        raise HTTPException(status_code=404, detail="User hours not found")
     
+    # struct for hours data
     return {
         "id": user_hours.id,
         "user_id": user_hours.user_id,
         "hours": {
-            "hoursTotal": user_hours.hoursTotal,
-            "hoursWeekly": user_hours.hoursWeekly,
-            "hoursMonthly": user_hours.hoursMonthly,
-            "hoursDaily": user_hours.hoursDaily    
+            "total": user_hours.hoursTotal,
+            "weekly": user_hours.hoursWeekly,
+            "monthly": user_hours.hoursMonthly,
+            "daily": user_hours.hoursDaily    
         },
         "transport": {
             "bus": {
-                "hoursTotal": user_hours.hoursTotal,
-                "hoursWeekly": user_hours.hoursWeekly,
-                "hoursMonthly": user_hours.hoursMonthly,
-                "hoursDaily": user_hours.hoursDaily    
+                "total": user_hours.bus_hoursTotal,
+                "weekly": user_hours.bus_hoursWeekly,
+                "monthly": user_hours.bus_hoursMonthly,
+                "daily": user_hours.bus_hoursDaily    
             },
             "train": {
-                "hoursTotal": user_hours.hoursTotal,
-                "hoursWeekly": user_hours.hoursWeekly,
-                "hoursMonthly": user_hours.hoursMonthly,
-                "hoursDaily": user_hours.hoursDaily    
+                "total": user_hours.train_hoursTotal,
+                "weekly": user_hours.train_hoursWeekly,
+                "monthly": user_hours.train_hoursMonthly,
+                "daily": user_hours.train_hoursDaily    
             },
-            "fairy": {
-                "hoursTotal": user_hours.hoursTotal,
-                "hoursWeekly": user_hours.hoursWeekly,
-                "hoursMonthly": user_hours.hoursMonthly,
-                "hoursDaily": user_hours.hoursDaily    
+            "ferry": {  # was "fairy" lol
+                "total": user_hours.ferry_hoursTotal,
+                "weekly": user_hours.ferry_hoursWeekly,
+                "monthly": user_hours.ferry_hoursMonthly,
+                "daily": user_hours.ferry_hoursDaily    
             },
         }
     }

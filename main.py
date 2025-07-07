@@ -1,12 +1,18 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+import routes.account
+import routes.auth
+import routes.misc
+import routes.travel
+import routes.gamling
+import routes.levels
+import routes.admin
 from misc import logging, db
+import misc.models
 import os
 import logging as log
-import misc.config as config
-
+import ssl
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
@@ -24,44 +30,29 @@ app.add_middleware(
 )
 log.getLogger('passlib').setLevel(log.ERROR)
 
-config.load_config()
-# === Include routes from routes file ===
-
-from routes.account import app as account_app
-import routes.auth
-import routes.misc
-import routes.travel
-
+# Load DB and routes
 try: 
     db.init_database()
-    logging.log("Database have been loaded", "info")
-except Exception as e:
-    logging.log("Error loading database: " + str(e), "critical")
-    pass
-try:
-    app.include_router(routes.auth.app)
-    logging.log("Auth routes have been loaded", "info")
-except Exception as e:
-    logging.log("Error loading auth routes: " + str(e),  "critical")
-    pass
-try:    
-    app.include_router(account_app)
-    logging.log("Account routes have been loaded", "info")
-except Exception as e:
-    logging.log("Error loading account routes: " + str(e), "critical")
-    pass
-try:
-    app.include_router(routes.travel.app)
-    logging.log("Travel routes have been loaded", "info")
-except Exception as e:
-    logging.log("Error loading travel routes: " + str(e), "critical")
-    pass
+    logging.log("DB loaded", "info")
 
-try:
-    app.include_router(routes.misc.app)
-    logging.log("Travel routes have been loaded", "info")
 except Exception as e:
-    logging.log("Error loading travel routes: " + str(e), "critical")
-    pass
+    logging.log(f"DB error: {e}", "critical")
 
-logging.log("API has been started", "success")
+routes_to_load = [
+    (routes.auth.app, "auth"),
+    (routes.account.app, "account"),
+    (routes.travel.app, "travel"),
+    (routes.misc.app, "misc"),
+    (routes.gamling.app, "gambling"),
+    (routes.levels.app, "levels"),
+    (routes.admin.app, "admin"),
+]
+
+for router, name in routes_to_load:
+    try:
+        app.include_router(router)
+        logging.log(f"{name} routes loaded", "info")
+    except Exception as e:
+        logging.log(f"{name} routes failed: {e}", "critical")
+
+logging.log("API started", "success")

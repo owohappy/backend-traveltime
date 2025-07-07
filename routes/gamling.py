@@ -6,31 +6,19 @@ import gambling
 
 app = APIRouter(tags=["Gambling"])
 
-@app.post("/gamble/blackjack/startgame",
-            response_model=schemas.GambleGame, # type: ignore
-            status_code=status.HTTP_201_CREATED,
-            summary="Start a new blackjack game",
-            description="Creates a new blackjack game and returns the game ID")
+@app.post("/gamble/blackjack/start", status_code=status.HTTP_201_CREATED)
 async def start_game(
-    game: schemas.GambleGameCreate, # type: ignore
+    game: schemas.GambleGameCreate,
     session: Session = Depends(db.get_session),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Start a new blackjack game"""
-    return await gambling.start_game(game, session, current_user) # type: ignore
+    return await gambling.start_game(game, session, current_user)
 
-
-
-@app.post("/gamble/blackjack/action",
-            response_model=schemas.GambleGame, # type: ignore
-            status_code=status.HTTP_200_OK,
-            summary="Perform an action in a blackjack game",
-            description="Performs an action in a blackjack game and returns the updated game state")
-async def action(
-    game: schemas.GambleGameAction, # type: ignore
+@app.post("/gamble/blackjack/action")
+async def do_action(
+    game: schemas.GambleGameAction,
     session: Session = Depends(db.get_session),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Perform an action in a blackjack game"""
-    return await gambling.action(game, session, current_user) # type: ignore
+    return await gambling.action(game, session, current_user)
 

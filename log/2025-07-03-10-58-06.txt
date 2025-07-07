@@ -1,0 +1,2 @@
+[10:58:06] [36m info:[37m Email config incomplete
+[10:58:06] [33m warning:[37m JWT key value is not changed

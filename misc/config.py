@@ -4,13 +4,12 @@ import secrets
 from misc import logging
 
 def generate_default_config():
-    """Generate a default configuration with secure values"""
     return {
         "app": {
             "debug": True,
             "baseURL": "http://localhost:8000",
             "nameDB": "traveltime",
-            "jwtSecretKey": secrets.token_hex(32)  # Generate secure JWT key
+            "jwtSecretKey": secrets.token_hex(32)
         },
         "email": {
             "smtp": {
@@ -20,42 +19,51 @@ def generate_default_config():
                 "password": "",
                 "senderEmail": ""
             },
+            "subjects": {
+                "verifyEmail": "Verify your TravelTime account",
+                "resetPassword": "Reset your TravelTime password",
+                "enableMFA": "Enable Two-Factor Authentication"
+            },
             "enabled": False
         }
     }
 
 def load_config():
-    """Load configuration with fallback to defaults and environment variables"""
     try:
-        # Try to load from file
-        with open('config.json', 'r') as config_file:
-            config = json.load(config_file)
+        with open('config.json', 'r') as f:
+            config = json.load(f)
             
-        # Override with environment variables if present
+        # env overrides
         if os.getenv("APP_DEBUG"):
-            config["app"]["debug"] = os.getenv("APP_DEBUG").lower() == "true" # type: ignore
+            config["app"]["debug"] = os.getenv("APP_DEBUG").lower() == "true"
         if os.getenv("APP_BASE_URL"):
             config["app"]["baseURL"] = os.getenv("APP_BASE_URL")
         if os.getenv("JWT_SECRET_KEY"):
             config["app"]["jwtSecretKey"] = os.getenv("JWT_SECRET_KEY")
             
-        # Email config from environment
         if os.getenv("EMAIL_ENABLED"):
-            config["email"]["enabled"] = os.getenv("EMAIL_ENABLED").lower() == "true" # type: ignore
+            config["email"]["enabled"] = os.getenv("EMAIL_ENABLED").lower() == "true"
         if os.getenv("EMAIL_HOST"):
             config["email"]["smtp"]["host"] = os.getenv("EMAIL_HOST")
+        if os.getenv("EMAIL_PORT"):
+            config["email"]["smtp"]["port"] = int(os.getenv("EMAIL_PORT"))
+        if os.getenv("EMAIL_USERNAME"):
+            config["email"]["smtp"]["username"] = os.getenv("EMAIL_USERNAME")
+        if os.getenv("EMAIL_PASSWORD"):
+            config["email"]["smtp"]["password"] = os.getenv("EMAIL_PASSWORD")
+        if os.getenv("EMAIL_SENDER"):
+            config["email"]["smtp"]["senderEmail"] = os.getenv("EMAIL_SENDER")
         
         return config
         
     except FileNotFoundError:
-        # Create default config
         default_config = generate_default_config()
-        with open('config.json', 'w') as config_file:
-            json.dump(default_config, config_file, indent=2)
-        logging.log("Created default config.json file", "warning")
+        with open('config.json', 'w') as f:
+            json.dump(default_config, f, indent=2)
+        logging.log("Created default config.json", "warning")
         return default_config
     except Exception as e:
-        logging.log(f"Error loading config: {str(e)}", "critical")
+        logging.log(f"Config error: {e}", "critical")
         exit(1)
         
 config = load_config()
