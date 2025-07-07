@@ -88,10 +88,11 @@ def get_user_picture(user_id: str):
     Endpoint to retrieve user profile picture.
     """
     file_location = f"misc/templates/pfp/{user_id}.jpg"
+    default = f"misc/templates/pfp/default.jpg"
     try:
         return FileResponse(file_location, media_type="image/jpeg")
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Profile picture not found.")
+        return FileResponse(default, media_type="image/jpeg")
     except Exception as e:
         logging.log(f"Error retrieving profile picture for user {user_id}: {str(e)}", "error")
         raise HTTPException(status_code=500, detail="Error retrieving profile picture.")
@@ -113,3 +114,4 @@ def get_user_picture(user_id: str):
             shutil.copyfileobj(file.file, buffer)
     
     return None
+

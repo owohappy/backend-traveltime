@@ -34,6 +34,7 @@ log.getLogger('passlib').setLevel(log.ERROR)
 try: 
     db.init_database()
     logging.log("DB loaded", "info")
+
 except Exception as e:
     logging.log(f"DB error: {e}", "critical")
 

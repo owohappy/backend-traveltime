@@ -46,7 +46,7 @@ async def check_token(
     """Check if the provided access token is valid"""
     try:
         payload = await auth.check_token(access_token.access_token)
-        print(access_token)
+
         if not payload:
             response.status_code = 404
             return {"valid": False, "error": "Token not found"}

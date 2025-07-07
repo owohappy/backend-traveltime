@@ -1,5 +1,8 @@
+
+from datetime import datetime
+from cairo import Status
 from fastapi import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 from misc import logging, models
 
 # TODO: placeholder user data
@@ -17,10 +20,18 @@ def delete_user(user_id):
             break
     
     if user_to_delete:
-        users.remove(user_to_delete)
-        logging.log(f"User {user_id} deleted", "info")
-        return True
-    return False
+        try:
+            users.remove(user_to_delete)
+            logging.log(message=f"User {user_id} deleted.", type="info")
+            return True
+        except HTTPException:
+            return None
+        except Exception as e:
+            logging.log(f"Error deleting user {user_id}: {str(e)}", "error")
+            raise HTTPException(
+                status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR, # type: ignore
+                detail="Failed to delete user"
+            )
 
 def suspend_user(user_id, reason, session):
     try:
@@ -36,6 +47,7 @@ def suspend_user(user_id, reason, session):
         logging.log(f"Suspend error: {e}", "error")
         raise HTTPException(status_code=500, detail="Suspend failed")
 
+
 def reinstate_user(user_id, session):
     try:
         user = session.exec(select(models.User).where(models.User.id == user_id)).first()
@@ -49,3 +61,4 @@ def reinstate_user(user_id, session):
     except Exception as e:
         logging.log(f"Reinstate error: {e}", "error")
         raise HTTPException(status_code=500, detail="Reinstate failed")
+

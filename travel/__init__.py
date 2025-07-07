@@ -743,6 +743,7 @@ def gpsinput(user_id, lat, lon, timestamp=None):
             "travel_id": None
         }
 
+
 def calculate_total_distance(latitudes, longitudes):
     """Calculate total distance traveled using Haversine formula"""
     import math
@@ -821,4 +822,5 @@ def get_user_travel_stats(user_id, timeframe="daily"):
             "average_trip_duration": (total_duration / trip_count / 60) if trip_count > 0 else 0,
             "average_trip_distance": (total_distance / trip_count) if trip_count > 0 else 0
         }
+
 
