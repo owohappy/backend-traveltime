@@ -1,5 +1,5 @@
 import requests
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon
 import time
 import json
 import os
@@ -7,8 +7,43 @@ import math
 import zipfile
 import io
 from urllib.parse import quote
+from collections import defaultdict, Counter
+from dataclasses import dataclass, field
+from typing import List, Dict, Tuple, Optional, Union, Any
+import threading
+import hashlib
+import statistics
+import numpy as np
+from datetime import datetime, timedelta
+import pickle
+import sqlite3
 
 CACHE_FILE = "cached_routes.json"
+ANALYTICS_CACHE_FILE = "route_analytics.pkl"
+TRANSPORT_PATTERNS_FILE = "transport_patterns.db"
+
+@dataclass
+class RouteMetadata:
+    """Enhanced route metadata for better transport type detection"""
+    route_id: str
+    transport_type: str = "unknown"
+    operator: str = "unknown"
+    route_name: str = ""
+    frequency_minutes: Optional[int] = None
+    stops: List[Tuple[float, float]] = field(default_factory=list)
+    speed_kmh: Optional[float] = None
+    usage_count: int = 0
+    confidence_score: float = 0.0
+    geometry_hash: str = ""
+    
+@dataclass
+class TransportTypePattern:
+    """Pattern data for transport type detection"""
+    speed_profile: List[float] = field(default_factory=list)
+    stop_frequency: float = 0.0
+    route_geometry: str = ""
+    confidence: float = 0.0
+    sample_count: int = 0
 
 def decode_polyline(polyline_str):
     """
@@ -123,6 +158,7 @@ def fetch_transport_rest_routes():
 def fetch_osm_routes_via_overpass(bbox=None, route_types=None):
     """
     Fetch public transport routes from OpenStreetMap via Overpass API.
+    Enhanced with route metadata extraction for better transport type detection.
     
     Args:
         bbox: Bounding box as (south, west, north, east) tuple
@@ -143,73 +179,71 @@ def fetch_osm_routes_via_overpass(bbox=None, route_types=None):
     route_filter = "|".join(route_types)
     
     overpass_query = f"""
-    [out:json][timeout:60][bbox:{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}];
+    [out:json][timeout:60];
     (
-      relation["type"="route"]["route"~"^({route_filter})$"];
-      relation["type"="route_master"]["route_master"~"^({route_filter})$"];
+      relation["route"~"^({route_filter})$"]["public_transport"="route"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
     );
     out geom;
     """
     
     try:
-        overpass_url = "http://overpass-api.de/api/interpreter"
-        res = requests.post(
-            overpass_url, 
-            data={"data": overpass_query},
-            timeout=90,
-            headers={"User-Agent": "TravelTime-Backend/1.0"}
-        )
-        res.raise_for_status()
-        data = res.json()
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        response = requests.post(overpass_url, data=overpass_query, timeout=120)
+        response.raise_for_status()
         
-        routes = []
+        data = response.json()
+        routes_with_metadata = []
         
         for element in data.get("elements", []):
-            try:
-                route_info = {
-                    "coordinates": [],
-                    "type": element.get("tags", {}).get("route", "unknown"),
-                    "name": element.get("tags", {}).get("name", ""),
-                    "ref": element.get("tags", {}).get("ref", ""),
-                    "operator": element.get("tags", {}).get("operator", ""),
-                    "network": element.get("tags", {}).get("network", "")
-                }
-                
-                # Extract coordinates from geometry
-                if "geometry" in element:
+            if element.get("type") == "relation":
+                try:
+                    # Extract route metadata
+                    tags = element.get("tags", {})
+                    route_type = tags.get("route", "unknown")
+                    operator = tags.get("operator", "unknown")
+                    route_name = tags.get("name", tags.get("ref", ""))
+                    
+                    # Extract coordinates from members
                     coords = []
-                    for geom in element["geometry"]:
-                        if "lat" in geom and "lon" in geom:
-                            coords.append((geom["lat"], geom["lon"]))
+                    stops = []
+                    
+                    for member in element.get("members", []):
+                        if member.get("type") == "way" and "geometry" in member:
+                            for node in member["geometry"]:
+                                coords.append((node["lat"], node["lon"]))
+                        elif member.get("type") == "node" and member.get("role") == "stop":
+                            if "lat" in member and "lon" in member:
+                                stops.append((member["lat"], member["lon"]))
                     
                     if len(coords) > 1:
-                        route_info["coordinates"] = coords
-                        routes.append(route_info)
-                
-                # Extract coordinates from members (for route_master relations)
-                elif "members" in element:
-                    all_coords = []
-                    for member in element["members"]:
-                        if "geometry" in member:
-                            for geom in member["geometry"]:
-                                if "lat" in geom and "lon" in geom:
-                                    all_coords.append((geom["lat"], geom["lon"]))
-                    
-                    if len(all_coords) > 1:
-                        route_info["coordinates"] = all_coords
-                        routes.append(route_info)
+                        # Create route metadata
+                        route_id = f"osm_{element.get('id', 'unknown')}"
+                        geometry_hash = hashlib.md5(str(coords[:10]).encode()).hexdigest()
                         
-            except Exception as e:
-                print(f"Error processing OSM element: {e}")
-                continue
+                        metadata = RouteMetadata(
+                            route_id=route_id,
+                            transport_type=route_type,
+                            operator=operator,
+                            route_name=route_name,
+                            stops=stops,
+                            geometry_hash=geometry_hash,
+                            confidence_score=0.8  # OSM data is generally reliable
+                        )
+                        
+                        routes_with_metadata.append({
+                            "coordinates": coords,
+                            "metadata": metadata
+                        })
+                        
+                except Exception as e:
+                    print(f"Error processing OSM route: {e}")
+                    continue
         
-        print(f"Successfully fetched {len(routes)} routes from OpenStreetMap")
-        
-        # Return just coordinates for compatibility with existing code
-        return [route["coordinates"] for route in routes if route["coordinates"]]
+        print(f"Successfully fetched {len(routes_with_metadata)} routes from OSM")
+        return routes_with_metadata
         
     except Exception as e:
-        print(f"Overpass API error: {e}")
+        print(f"OSM Overpass API error: {e}")
         return []
 
 def fetch_transitland_routes(api_key=None, bbox=None):
@@ -478,8 +512,190 @@ def update_route_cache(force_update=False):
     print(f"Route cache updated with {len(routes)} routes")
     return len(routes)
 
-routes = get_all_routes() if not os.path.exists(CACHE_FILE) else load_cached_routes()
-routes_lines = [LineString(r) for r in routes if len(r) > 1]
+class RouteManager:
+    """
+    Efficient route management with lazy loading and spatial indexing.
+    """
+    
+    def __init__(self):
+        self._routes = None
+        self._routes_lines = None
+        self._spatial_index = {}
+        self._loaded = False
+        self._cache_file = CACHE_FILE
+        
+    def _load_routes(self):
+        """Lazy load routes only when needed."""
+        if self._loaded:
+            return
+            
+        print("Loading routes...")
+        
+        if os.path.exists(self._cache_file):
+            print("Loading routes from cache...")
+            try:
+                with open(self._cache_file, "r") as f:
+                    cache_data = json.load(f)
+                
+                # Check if cache is too old (older than 7 days)
+                cache_age = time.time() - cache_data.get("cache_created", 0)
+                if cache_age > 7 * 24 * 3600:  # 7 days
+                    print("Cache is outdated, fetching fresh routes...")
+                    self._routes = get_all_routes()
+                    self._update_cache()
+                else:
+                    self._routes = cache_data.get("routes", [])
+                    print(f"Loaded {len(self._routes)} routes from cache")
+                    
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Cache file corrupted, fetching fresh routes: {e}")
+                self._routes = get_all_routes()
+                self._update_cache()
+        else:
+            print("No cache found, fetching routes from APIs...")
+            self._routes = get_all_routes()
+            self._update_cache()
+        
+        # Convert to LineString objects
+        self._routes_lines = []
+        for i, route in enumerate(self._routes):
+            if len(route) > 1:
+                try:
+                    line = LineString(route)
+                    self._routes_lines.append(line)
+                except Exception as e:
+                    print(f"Error creating LineString for route {i}: {e}")
+                    continue
+        
+        # Build spatial index for faster lookups
+        self._build_spatial_index()
+        
+        self._loaded = True
+        print(f"Route loading complete: {len(self._routes_lines)} valid routes")
+    
+    def _update_cache(self):
+        """Update the route cache file."""
+        cache_data = {
+            "routes": self._routes,
+            "cache_created": time.time(),
+            "total_routes": len(self._routes),
+            "version": "2.0"
+        }
+        
+        try:
+            with open(self._cache_file, "w") as f:
+                json.dump(cache_data, f)
+            print(f"Cache updated with {len(self._routes)} routes")
+        except Exception as e:
+            print(f"Failed to update cache: {e}")
+    
+    def _build_spatial_index(self):
+        """Build a spatial index for faster route lookups."""
+        print("Building spatial index...")
+        
+        # Create a grid-based spatial index
+        grid_size = 0.01  # ~1km grid cells
+        
+        for i, line in enumerate(self._routes_lines):
+            try:
+                bounds = line.bounds  # (minx, miny, maxx, maxy)
+                
+                # Calculate grid cells that this route intersects
+                min_grid_x = int(bounds[0] / grid_size)
+                max_grid_x = int(bounds[2] / grid_size)
+                min_grid_y = int(bounds[1] / grid_size)
+                max_grid_y = int(bounds[3] / grid_size)
+                
+                # Add route to all intersecting grid cells
+                for gx in range(min_grid_x, max_grid_x + 1):
+                    for gy in range(min_grid_y, max_grid_y + 1):
+                        grid_key = (gx, gy)
+                        if grid_key not in self._spatial_index:
+                            self._spatial_index[grid_key] = []
+                        self._spatial_index[grid_key].append(i)
+                        
+            except Exception as e:
+                print(f"Error indexing route {i}: {e}")
+                continue
+        
+        print(f"Spatial index built with {len(self._spatial_index)} grid cells")
+    
+    def get_nearby_routes_optimized(self, lat, lon, radius_meters=1000):
+        """
+        Get nearby routes using spatial index for better performance.
+        """
+        self._load_routes()
+        
+        if not self._routes_lines:
+            return []
+        
+        # Convert radius to degrees (approximate)
+        radius_degrees = radius_meters / DEGREES_TO_METERS
+        grid_size = 0.01
+        
+        # Calculate which grid cells to check
+        grid_range = max(1, int(radius_degrees / grid_size) + 1)
+        center_grid_x = int(lat / grid_size)
+        center_grid_y = int(lon / grid_size)
+        
+        candidate_routes = set()
+        
+        # Check nearby grid cells
+        for gx in range(center_grid_x - grid_range, center_grid_x + grid_range + 1):
+            for gy in range(center_grid_y - grid_range, center_grid_y + grid_range + 1):
+                grid_key = (gx, gy)
+                if grid_key in self._spatial_index:
+                    candidate_routes.update(self._spatial_index[grid_key])
+        
+        # Filter candidates by actual distance
+        user_point = Point(lat, lon)
+        user_area = user_point.buffer(radius_degrees)
+        
+        nearby_routes = []
+        for route_idx in candidate_routes:
+            try:
+                if route_idx < len(self._routes_lines):
+                    route = self._routes_lines[route_idx]
+                    if route.intersects(user_area):
+                        nearby_routes.append(route)
+            except Exception as e:
+                print(f"Error checking route {route_idx}: {e}")
+                continue
+        
+        return nearby_routes
+    
+    def get_routes_lines(self):
+        """Get all route lines (loads routes if not already loaded)."""
+        self._load_routes()
+        return self._routes_lines
+    
+    def get_routes_count(self):
+        """Get total number of routes."""
+        self._load_routes()
+        return len(self._routes_lines)
+    
+    def refresh_cache(self):
+        """Force refresh of route cache."""
+        print("Forcing route cache refresh...")
+        self._routes = get_all_routes()
+        self._update_cache()
+        self._routes_lines = None
+        self._spatial_index = {}
+        self._loaded = False
+        self._load_routes()
+
+# Global route manager instance
+route_manager = RouteManager()
+
+# Legacy compatibility functions
+def get_routes():
+    """Get raw route data for backwards compatibility."""
+    route_manager._load_routes()
+    return route_manager._routes or []
+
+def get_routes_lines():
+    """Get route LineString objects for backwards compatibility."""
+    return route_manager.get_routes_lines()
 
 DEGREES_TO_METERS = 111139  
 ROUTE_WIDTH_METERS = 20     
@@ -501,28 +717,36 @@ def is_user_on_any_buffered_route(user_lat, user_lon, buffered_routes):
     user_point = Point(user_lat, user_lon)
     return any(buffer.contains(user_point) for buffer in buffered_routes)
 
-def get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000):
-    radius_degrees = radius_meters / DEGREES_TO_METERS
-    user_point = Point(user_lat, user_lon)
-    user_area = user_point.buffer(radius_degrees)
+def get_nearby_routes(user_lat, user_lon, routes_lines=None, radius_meters=1000):
+    """
+    Get routes near a user location.
+    Now uses optimized spatial indexing for better performance.
+    """
+    return route_manager.get_nearby_routes_optimized(user_lat, user_lon, radius_meters)
 
-    return [route for route in routes_lines if route.intersects(user_area)]
-
-def buffer_nearby_routes(user_lat, user_lon, routes_lines):
-    nearby_routes = get_nearby_routes(user_lat, user_lon, routes_lines)
+def buffer_nearby_routes(user_lat, user_lon, routes_lines=None):
+    nearby_routes = get_nearby_routes(user_lat, user_lon, routes_lines, radius_meters=1000)
     print(f"Found {len(nearby_routes)} nearby routes")
 
     buffered = []
     for route in nearby_routes:
-        interpolated = interpolate_linestring(route, RESAMPLE_EVERY_METERS)
-        buffer_radius = ROUTE_WIDTH_METERS / DEGREES_TO_METERS
-        buffered.append(interpolated.buffer(buffer_radius))
+        try:
+            interpolated = interpolate_linestring(route, RESAMPLE_EVERY_METERS)
+            buffer_radius = ROUTE_WIDTH_METERS / DEGREES_TO_METERS
+            buffered.append(interpolated.buffer(buffer_radius))
+        except Exception as e:
+            print(f"Error buffering route: {e}")
+            continue
     return buffered
 
-def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines):
-    buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
-    user_point = Point(user_lat, user_lon)
-    return any(buf.contains(user_point) for buf in buffered_routes)
+def is_user_on_any_nearby_route(user_lat, user_lon, routes_lines=None):
+    try:
+        buffered_routes = buffer_nearby_routes(user_lat, user_lon, routes_lines)
+        user_point = Point(user_lat, user_lon)
+        return any(buf.contains(user_point) for buf in buffered_routes)
+    except Exception as e:
+        print(f"Error checking if user is on route: {e}")
+        return False
 
 def gpsinput(user_id, lat, lon, timestamp=None):
     """
@@ -582,7 +806,7 @@ def gpsinput(user_id, lat, lon, timestamp=None):
     
     # Check if user is on any transportation route
     try:
-        is_on_route = is_user_on_any_nearby_route(lat, lon, routes_lines)
+        is_on_route = is_user_on_any_nearby_route(lat, lon)
     except Exception as e:
         print(f"Error checking route proximity: {e}")
         is_on_route = False
@@ -770,17 +994,55 @@ def calculate_total_distance(latitudes, longitudes):
     
     return total_distance
 
-def detect_transport_type(lat, lon):
+def detect_transport_type(lat, lon, speed_kmh=None, travel_history=None):
     """
-    Detect the type of public transport based on location and nearby routes
-    This is a simplified implementation - could be enhanced with route metadata
+    Enhanced transport type detection using multiple data sources and machine learning patterns.
+    
+    Args:
+        lat: Latitude
+        lon: Longitude  
+        speed_kmh: Optional speed in km/h
+        travel_history: Optional list of recent travel points
+    
+    Returns:
+        Tuple of (transport_type, confidence_score)
     """
-    nearby_routes = get_nearby_routes(lat, lon, routes_lines, radius_meters=100)
-    
-    if not nearby_routes:
-        return "unknown"
-    
-    return "bus"  # need to add type 
+    try:
+        # Get nearby routes with metadata
+        nearby_routes = get_nearby_routes(lat, lon, radius_meters=100)
+        
+        if not nearby_routes:
+            return "unknown", 0.0
+        
+        # Use analytics system for prediction
+        stop_pattern = None
+        if travel_history and len(travel_history) > 2:
+            stop_pattern = [(point.get('lat', 0), point.get('lon', 0)) for point in travel_history[-10:]]
+        
+        transport_type, confidence = route_analytics.predict_transport_type(
+            lat, lon, speed_kmh, stop_pattern
+        )
+        
+        # Update usage analytics
+        route_id = f"route_{hash((lat, lon))}"
+        route_analytics.update_route_usage(route_id, transport_type)
+        
+        # Learn from this interaction if we have speed data
+        if speed_kmh is not None and travel_history and len(travel_history) > 5:
+            recent_speeds = [point.get('speed', 0) for point in travel_history[-5:] if point.get('speed', 0) > 0]
+            if recent_speeds:
+                route_analytics.learn_transport_pattern(
+                    transport_type, 
+                    recent_speeds, 
+                    len(travel_history) / 10.0,  # Simplified stop frequency
+                    f"route_{hash((lat, lon))}"
+                )
+        
+        return transport_type, confidence
+        
+    except Exception as e:
+        print(f"Error in enhanced transport type detection: {e}")
+        return "unknown", 0.0 
 
 
 def get_user_travel_stats(user_id, timeframe="daily"):
@@ -822,5 +1084,287 @@ def get_user_travel_stats(user_id, timeframe="daily"):
             "average_trip_duration": (total_duration / trip_count / 60) if trip_count > 0 else 0,
             "average_trip_distance": (total_distance / trip_count) if trip_count > 0 else 0
         }
+
+class RouteAnalytics:
+    """
+    Advanced route analytics system for transport type detection and route optimization.
+    """
+    
+    def __init__(self):
+        self.analytics_cache = {}
+        self.transport_patterns = {}
+        self.route_usage_stats = defaultdict(int)
+        self.operator_stats = defaultdict(lambda: defaultdict(int))
+        self.popular_routes = []
+        self._load_analytics_cache()
+        self._load_transport_patterns()
+    
+    def _load_analytics_cache(self):
+        """Load analytics cache from file."""
+        try:
+            if os.path.exists(ANALYTICS_CACHE_FILE):
+                with open(ANALYTICS_CACHE_FILE, 'rb') as f:
+                    data = pickle.load(f)
+                    self.analytics_cache = data.get('analytics_cache', {})
+                    self.route_usage_stats = data.get('route_usage_stats', defaultdict(int))
+                    self.operator_stats = data.get('operator_stats', defaultdict(lambda: defaultdict(int)))
+                    self.popular_routes = data.get('popular_routes', [])
+                    print(f"Loaded analytics cache with {len(self.analytics_cache)} entries")
+        except Exception as e:
+            print(f"Error loading analytics cache: {e}")
+    
+    def _save_analytics_cache(self):
+        """Save analytics cache to file."""
+        try:
+            data = {
+                'analytics_cache': self.analytics_cache,
+                'route_usage_stats': dict(self.route_usage_stats),
+                'operator_stats': dict(self.operator_stats),
+                'popular_routes': self.popular_routes
+            }
+            with open(ANALYTICS_CACHE_FILE, 'wb') as f:
+                pickle.dump(data, f)
+        except Exception as e:
+            print(f"Error saving analytics cache: {e}")
+    
+    def _load_transport_patterns(self):
+        """Load transport type patterns from SQLite database."""
+        try:
+            if os.path.exists(TRANSPORT_PATTERNS_FILE):
+                conn = sqlite3.connect(TRANSPORT_PATTERNS_FILE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT transport_type, speed_profile, stop_frequency, 
+                           route_geometry, confidence, sample_count
+                    FROM transport_patterns
+                ''')
+                
+                for row in cursor.fetchall():
+                    transport_type, speed_profile, stop_frequency, route_geometry, confidence, sample_count = row
+                    self.transport_patterns[transport_type] = TransportTypePattern(
+                        speed_profile=pickle.loads(speed_profile),
+                        stop_frequency=stop_frequency,
+                        route_geometry=route_geometry,
+                        confidence=confidence,
+                        sample_count=sample_count
+                    )
+                
+                conn.close()
+                print(f"Loaded {len(self.transport_patterns)} transport patterns")
+        except Exception as e:
+            print(f"Error loading transport patterns: {e}")
+            self._create_transport_patterns_db()
+    
+    def _create_transport_patterns_db(self):
+        """Create the transport patterns database."""
+        try:
+            conn = sqlite3.connect(TRANSPORT_PATTERNS_FILE)
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS transport_patterns (
+                    transport_type TEXT PRIMARY KEY,
+                    speed_profile BLOB,
+                    stop_frequency REAL,
+                    route_geometry TEXT,
+                    confidence REAL,
+                    sample_count INTEGER
+                )
+            ''')
+            conn.commit()
+            conn.close()
+            print("Created transport patterns database")
+        except Exception as e:
+            print(f"Error creating transport patterns database: {e}")
+    
+    def update_route_usage(self, route_id: str, transport_type: str = None, operator: str = None):
+        """Update route usage statistics."""
+        self.route_usage_stats[route_id] += 1
+        
+        if transport_type:
+            self.operator_stats[operator or 'unknown'][transport_type] += 1
+        
+        # Update popular routes list
+        self._update_popular_routes()
+        
+        # Save periodically
+        if sum(self.route_usage_stats.values()) % 100 == 0:
+            self._save_analytics_cache()
+    
+    def _update_popular_routes(self):
+        """Update the list of popular routes."""
+        sorted_routes = sorted(self.route_usage_stats.items(), key=lambda x: x[1], reverse=True)
+        self.popular_routes = sorted_routes[:50]  # Keep top 50
+    
+    def get_route_analytics(self, route_id: str) -> Dict[str, Any]:
+        """Get analytics for a specific route."""
+        if route_id not in self.analytics_cache:
+            return {"usage_count": 0, "last_used": None, "confidence": 0.0}
+        
+        return self.analytics_cache[route_id]
+    
+    def get_popular_routes(self, limit: int = 10) -> List[Tuple[str, int]]:
+        """Get most popular routes."""
+        return self.popular_routes[:limit]
+    
+    def get_operator_stats(self) -> Dict[str, Dict[str, int]]:
+        """Get operator statistics."""
+        return dict(self.operator_stats)
+    
+    def analyze_transport_patterns(self, user_travel_data: List[Dict]) -> Dict[str, Any]:
+        """Analyze transport patterns from user travel data."""
+        if not user_travel_data:
+            return {}
+        
+        # Group by transport type
+        transport_data = defaultdict(list)
+        for travel in user_travel_data:
+            transport_type = travel.get('transport_type', 'unknown')
+            transport_data[transport_type].append(travel)
+        
+        analysis = {}
+        for transport_type, travels in transport_data.items():
+            if len(travels) > 1:
+                speeds = [t.get('avg_speed', 0) for t in travels if t.get('avg_speed', 0) > 0]
+                distances = [t.get('distance', 0) for t in travels if t.get('distance', 0) > 0]
+                durations = [t.get('duration', 0) for t in travels if t.get('duration', 0) > 0]
+                
+                if speeds and distances and durations:
+                    analysis[transport_type] = {
+                        'avg_speed': statistics.mean(speeds),
+                        'avg_distance': statistics.mean(distances),
+                        'avg_duration': statistics.mean(durations),
+                        'trip_count': len(travels),
+                        'speed_variance': statistics.variance(speeds) if len(speeds) > 1 else 0,
+                        'pattern_confidence': min(len(travels) / 10.0, 1.0)  # Confidence based on sample size
+                    }
+        
+        return analysis
+    
+    def predict_transport_type(self, lat: float, lon: float, speed_kmh: float = None, 
+                             stop_pattern: List[Tuple[float, float]] = None) -> Tuple[str, float]:
+        """
+        Predict transport type based on location, speed, and stop patterns.
+        
+        Returns:
+            Tuple of (transport_type, confidence_score)
+        """
+        predictions = []
+        
+        # Speed-based prediction
+        if speed_kmh is not None:
+            if speed_kmh < 15:
+                predictions.append(('bus', 0.7))
+            elif speed_kmh < 35:
+                predictions.append(('tram', 0.6))
+            elif speed_kmh < 80:
+                predictions.append(('train', 0.8))
+            else:
+                predictions.append(('train', 0.9))
+        
+        # Pattern-based prediction using learned patterns
+        if stop_pattern and len(stop_pattern) > 2:
+            # Calculate stop frequency
+            total_distance = 0
+            for i in range(1, len(stop_pattern)):
+                lat1, lon1 = stop_pattern[i-1]
+                lat2, lon2 = stop_pattern[i]
+                distance = calculate_distance(lat1, lon1, lat2, lon2)
+                total_distance += distance
+            
+            if total_distance > 0:
+                avg_stop_distance = total_distance / (len(stop_pattern) - 1)
+                
+                if avg_stop_distance < 0.5:  # Very frequent stops
+                    predictions.append(('bus', 0.8))
+                elif avg_stop_distance < 1.5:  # Moderate stops
+                    predictions.append(('tram', 0.7))
+                else:  # Infrequent stops
+                    predictions.append(('train', 0.8))
+        
+        # Use learned patterns for additional prediction
+        for transport_type, pattern in self.transport_patterns.items():
+            if pattern.confidence > 0.5:
+                # Simple pattern matching based on confidence
+                predictions.append((transport_type, pattern.confidence * 0.5))
+        
+        # Combine predictions
+        if predictions:
+            # Weight by confidence and return most likely
+            weighted_predictions = defaultdict(float)
+            for transport_type, confidence in predictions:
+                weighted_predictions[transport_type] += confidence
+            
+            best_prediction = max(weighted_predictions.items(), key=lambda x: x[1])
+            return best_prediction[0], min(best_prediction[1], 1.0)
+        
+        return 'unknown', 0.0
+    
+    def learn_transport_pattern(self, transport_type: str, speed_data: List[float], 
+                               stop_frequency: float, route_geometry: str):
+        """Learn transport patterns from real usage data."""
+        if transport_type not in self.transport_patterns:
+            self.transport_patterns[transport_type] = TransportTypePattern()
+        
+        pattern = self.transport_patterns[transport_type]
+        
+        # Update speed profile
+        pattern.speed_profile.extend(speed_data)
+        if len(pattern.speed_profile) > 1000:  # Limit size
+            pattern.speed_profile = pattern.speed_profile[-1000:]
+        
+        # Update stop frequency (exponential moving average)
+        alpha = 0.1
+        pattern.stop_frequency = alpha * stop_frequency + (1 - alpha) * pattern.stop_frequency
+        
+        # Update sample count and confidence
+        pattern.sample_count += 1
+        pattern.confidence = min(pattern.sample_count / 50.0, 1.0)
+        
+        # Update route geometry pattern
+        pattern.route_geometry = route_geometry
+        
+        # Save to database
+        self._save_transport_pattern(transport_type, pattern)
+    
+    def _save_transport_pattern(self, transport_type: str, pattern: TransportTypePattern):
+        """Save transport pattern to database."""
+        try:
+            conn = sqlite3.connect(TRANSPORT_PATTERNS_FILE)
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO transport_patterns
+                (transport_type, speed_profile, stop_frequency, route_geometry, confidence, sample_count)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                transport_type,
+                pickle.dumps(pattern.speed_profile),
+                pattern.stop_frequency,
+                pattern.route_geometry,
+                pattern.confidence,
+                pattern.sample_count
+            ))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Error saving transport pattern: {e}")
+
+# Global analytics instance
+route_analytics = RouteAnalytics()
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two points using Haversine formula."""
+    import math
+    
+    # Convert to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    r = 6371  # Earth's radius in kilometers
+    
+    return r * c
 
 

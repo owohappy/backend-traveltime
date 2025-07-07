@@ -2,9 +2,13 @@ from fastapi import APIRouter, Request
 from auth.accountManagment import is_token_valid
 from misc import schemas
 from . import travel
-from misc import config
+from misc import config, db, models
 from levels.calcXP import calcXP
 from datetime import datetime
+from sqlmodel import Session, select
+import json
+from collections import defaultdict
+import statistics
 
 app = APIRouter(tags=["travel"])
 config_data = config.config
@@ -76,6 +80,27 @@ async def track_gps_location(user_id: str, ping: schemas.LocationPing, request: 
         
         # Process GPS location with enhanced tracking logic
         tracking_result = travel.gpsinput(user_id, ping.latitude, ping.longitude, timestamp)
+        
+        # Update route analytics if transport is detected
+        if tracking_result.get("on_transport", False):
+            route_id = tracking_result.get("route_id")
+            transport_type = tracking_result.get("transport_type")
+            operator = tracking_result.get("operator")
+            
+            if route_id:
+                # Update route usage analytics
+                travel.route_analytics.update_route_usage(route_id, transport_type, operator)
+                
+                # Learn transport patterns if session is active
+                if tracking_result.get("session_type") in ["new", "continuing"]:
+                    speed_kmh = tracking_result.get("speed_kmh", 0)
+                    if speed_kmh > 0:
+                        travel.route_analytics.learn_transport_pattern(
+                            transport_type or "unknown",
+                            [speed_kmh],
+                            tracking_result.get("stop_frequency", 0.5),
+                            tracking_result.get("route_geometry", "")
+                        )
         
         # Enhanced response structure
         response_data = {
@@ -424,10 +449,10 @@ async def get_nearby_routes(latitude: float, longitude: float, radius: int = 100
         radius = max(50, min(radius, 5000))
         
         # Get nearby routes using the travel module
-        nearby_routes = travel.get_nearby_routes(latitude, longitude, travel.routes_lines, radius)
+        nearby_routes = travel.get_nearby_routes(latitude, longitude, radius_meters=radius)
         
         # Check if user would be considered "on route" at this location
-        on_route = travel.is_user_on_any_nearby_route(latitude, longitude, travel.routes_lines)
+        on_route = travel.is_user_on_any_nearby_route(latitude, longitude)
         
         # Detect likely transport type
         transport_type = travel.detect_transport_type(latitude, longitude)
@@ -471,5 +496,635 @@ async def get_nearby_routes(latitude: float, longitude: float, radius: int = 100
             error_response["type"] = type(e).__name__
         else:
             error_response["message"] = "An internal server error occurred. Please try again later."
+            
+        return error_response
+
+
+@app.post("/admin/routes/refresh")
+async def refresh_route_cache(request: Request):
+    """
+    Admin endpoint to refresh the route cache.
+    
+    This endpoint forces a refresh of the transportation route data from all
+    configured APIs and rebuilds the spatial index for better performance.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with cache refresh status
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Force refresh the route cache
+        start_time = datetime.utcnow()
+        travel.route_manager.refresh_cache()
+        end_time = datetime.utcnow()
+        
+        refresh_duration = (end_time - start_time).total_seconds()
+        route_count = travel.route_manager.get_routes_count()
+        
+        return {
+            "success": True,
+            "data": {
+                "refresh_duration_seconds": refresh_duration,
+                "total_routes_loaded": route_count,
+                "cache_updated": end_time.isoformat(),
+                "spatial_index_rebuilt": True
+            },
+            "timestamp": end_time.isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to refresh route cache. Please try again later."
+            
+        return error_response
+
+
+@app.get("/admin/routes/status")
+async def get_route_cache_status(request: Request):
+    """
+    Admin endpoint to get route cache status and statistics.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with route cache status and performance metrics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token", 
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        import os
+        
+        cache_file = travel.CACHE_FILE
+        cache_exists = os.path.exists(cache_file)
+        cache_size = 0
+        cache_modified = None
+        
+        if cache_exists:
+            cache_size = os.path.getsize(cache_file)
+            cache_modified = datetime.fromtimestamp(os.path.getmtime(cache_file))
+        
+        # Get route manager stats
+        route_count = travel.route_manager.get_routes_count() if travel.route_manager._loaded else 0
+        is_loaded = travel.route_manager._loaded
+        spatial_index_size = len(travel.route_manager._spatial_index) if is_loaded else 0
+        
+        response_data = {
+            "cache_status": {
+                "file_exists": cache_exists,
+                "file_size_bytes": cache_size,
+                "file_size_mb": round(cache_size / (1024 * 1024), 2),
+                "last_modified": cache_modified.isoformat() if cache_modified else None,
+                "age_hours": round((datetime.utcnow() - cache_modified).total_seconds() / 3600, 1) if cache_modified else None
+            },
+            "route_manager": {
+                "routes_loaded": is_loaded,
+                "total_routes": route_count,
+                "spatial_index_cells": spatial_index_size,
+                "memory_usage_estimated_mb": round((route_count * 0.5 + spatial_index_size * 0.1), 2)
+            },
+            "performance": {
+                "cache_file_path": cache_file,
+                "lazy_loading_enabled": True,
+                "spatial_indexing_enabled": True
+            }
+        }
+        
+        return {
+            "success": True,
+            "data": response_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get route status. Please try again later."
+            
+        return error_response
+
+
+# Import additional modules for analytics
+from misc import models
+from sqlmodel import Session, select
+import json
+from collections import defaultdict
+import statistics
+
+@app.get("/analytics/popular-routes")
+async def get_popular_routes(request: Request, limit: int = 10):
+    """
+    Get the most popular transportation routes based on usage analytics.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+        limit: Maximum number of routes to return (default: 10, max: 50)
+    
+    Returns:
+        JSON response with popular routes list including usage statistics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Validate limit parameter
+        limit = min(max(1, limit), 50)
+        
+        # Get popular routes from analytics
+        popular_routes = travel.route_analytics.get_popular_routes(limit)
+        
+        # Format response data
+        routes_data = []
+        for route_id, usage_count in popular_routes:
+            route_info = travel.route_analytics.get_route_analytics(route_id)
+            
+            # Get route details if available
+            route_details = None
+            if travel.route_manager._loaded:
+                for route in travel.route_manager.routes:
+                    if route.get('id') == route_id:
+                        route_details = {
+                            "name": route.get('name', 'Unknown Route'),
+                            "transport_type": route.get('transport_type', 'unknown'),
+                            "operator": route.get('operator', 'unknown'),
+                            "color": route.get('color', '#000000')
+                        }
+                        break
+            
+            routes_data.append({
+                "route_id": route_id,
+                "usage_count": usage_count,
+                "route_details": route_details,
+                "analytics": {
+                    "usage_count": route_info.get("usage_count", 0),
+                    "last_used": route_info.get("last_used"),
+                    "confidence": route_info.get("confidence", 0.0)
+                }
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "popular_routes": routes_data,
+                "total_routes_analyzed": len(travel.route_analytics.route_usage_stats),
+                "limit": limit
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get popular routes. Please try again later."
+            
+        return error_response
+
+@app.get("/analytics/operator-stats")
+async def get_operator_statistics(request: Request):
+    """
+    Get transportation operator statistics and analytics.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with operator statistics including transport types and usage data
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Get operator statistics from analytics
+        operator_stats = travel.route_analytics.get_operator_stats()
+        
+        # Calculate summary statistics
+        total_operators = len(operator_stats)
+        total_routes = sum(sum(transport_types.values()) for transport_types in operator_stats.values())
+        
+        # Format operator data
+        operators_data = []
+        for operator, transport_types in operator_stats.items():
+            total_operator_routes = sum(transport_types.values())
+            operators_data.append({
+                "operator": operator,
+                "total_routes": total_operator_routes,
+                "transport_types": dict(transport_types),
+                "market_share": round(total_operator_routes / total_routes * 100, 2) if total_routes > 0 else 0
+            })
+        
+        # Sort by total routes descending
+        operators_data.sort(key=lambda x: x['total_routes'], reverse=True)
+        
+        # Calculate transport type distribution
+        transport_type_totals = defaultdict(int)
+        for transport_types in operator_stats.values():
+            for transport_type, count in transport_types.items():
+                transport_type_totals[transport_type] += count
+        
+        transport_distribution = {
+            transport_type: {
+                "count": count,
+                "percentage": round(count / total_routes * 100, 2) if total_routes > 0 else 0
+            }
+            for transport_type, count in transport_type_totals.items()
+        }
+        
+        return {
+            "success": True,
+            "data": {
+                "operators": operators_data,
+                "summary": {
+                    "total_operators": total_operators,
+                    "total_routes": total_routes,
+                    "transport_type_distribution": transport_distribution
+                }
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get operator statistics. Please try again later."
+            
+        return error_response
+
+@app.get("/analytics/transport-patterns")
+async def get_transport_patterns(request: Request):
+    """
+    Get learned transport patterns and type detection analytics.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with transport patterns, detection accuracy, and learning statistics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Get transport patterns from analytics
+        transport_patterns = {}
+        
+        for transport_type, pattern in travel.route_analytics.transport_patterns.items():
+            # Calculate pattern statistics
+            speed_stats = {}
+            if pattern.speed_profile:
+                speed_stats = {
+                    "avg_speed": round(statistics.mean(pattern.speed_profile), 2),
+                    "speed_variance": round(statistics.variance(pattern.speed_profile), 2) if len(pattern.speed_profile) > 1 else 0,
+                    "min_speed": round(min(pattern.speed_profile), 2),
+                    "max_speed": round(max(pattern.speed_profile), 2),
+                    "data_points": len(pattern.speed_profile)
+                }
+            
+            transport_patterns[transport_type] = {
+                "confidence": round(pattern.confidence, 3),
+                "sample_count": pattern.sample_count,
+                "stop_frequency": round(pattern.stop_frequency, 3),
+                "speed_statistics": speed_stats,
+                "learning_status": "active" if pattern.confidence > 0.5 else "learning"
+            }
+        
+        # Calculate overall detection accuracy
+        total_samples = sum(p.sample_count for p in travel.route_analytics.transport_patterns.values())
+        high_confidence_patterns = sum(1 for p in travel.route_analytics.transport_patterns.values() if p.confidence > 0.7)
+        
+        detection_accuracy = {
+            "total_transport_types": len(transport_patterns),
+            "high_confidence_patterns": high_confidence_patterns,
+            "total_learning_samples": total_samples,
+            "overall_confidence": round(statistics.mean([p.confidence for p in travel.route_analytics.transport_patterns.values()]), 3) if transport_patterns else 0
+        }
+        
+        return {
+            "success": True,
+            "data": {
+                "transport_patterns": transport_patterns,
+                "detection_accuracy": detection_accuracy,
+                "learning_enabled": True
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get transport patterns. Please try again later."
+            
+        return error_response
+
+@app.get("/analytics/user/{user_id}/travel-insights")
+async def get_user_travel_insights(user_id: str, request: Request):
+    """
+    Get personalized travel insights and analytics for a specific user.
+    
+    Args:
+        user_id: User ID to get travel insights for
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with user travel patterns, preferences, and personalized analytics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Validate user ID
+        if not user_id or not user_id.isdigit():
+            return {
+                "error": "Invalid user ID",
+                "message": "User ID must be a valid numeric string",
+                "code": "INVALID_USER_ID"
+            }
+        
+        # Get user travel data from database
+        session = next(db.get_session())
+        
+        # Query user's travel sessions
+        user_travels = session.exec(
+            select(models.Travel).where(models.Travel.user_id == int(user_id))
+        ).all()
+        
+        if not user_travels:
+            return {
+                "success": True,
+                "data": {
+                    "user_id": user_id,
+                    "travel_insights": {},
+                    "message": "No travel data found for this user"
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        
+        # Convert to dictionary format for analysis
+        travel_data = []
+        for travel in user_travels:
+            travel_data.append({
+                "transport_type": travel.transport_type or "unknown",
+                "distance": travel.distance or 0,
+                "duration": travel.duration or 0,
+                "avg_speed": (travel.distance / (travel.duration / 3600)) if travel.duration and travel.distance else 0,
+                "timestamp": travel.timestamp.isoformat() if travel.timestamp else None
+            })
+        
+        # Analyze travel patterns
+        patterns = travel.route_analytics.analyze_transport_patterns(travel_data)
+        
+        # Calculate user-specific statistics
+        total_distance = sum(t["distance"] for t in travel_data)
+        total_duration = sum(t["duration"] for t in travel_data)
+        total_trips = len(travel_data)
+        
+        # Transport type preferences
+        transport_usage = defaultdict(int)
+        for travel in travel_data:
+            transport_usage[travel["transport_type"]] += 1
+        
+        preferred_transport = max(transport_usage.items(), key=lambda x: x[1]) if transport_usage else ("unknown", 0)
+        
+        # Calculate insights
+        insights = {
+            "travel_summary": {
+                "total_trips": total_trips,
+                "total_distance_km": round(total_distance, 2),
+                "total_duration_hours": round(total_duration / 3600, 2),
+                "avg_trip_distance": round(total_distance / total_trips, 2) if total_trips > 0 else 0,
+                "avg_trip_duration": round(total_duration / total_trips, 2) if total_trips > 0 else 0
+            },
+            "transport_preferences": {
+                "preferred_transport": preferred_transport[0],
+                "usage_distribution": dict(transport_usage),
+                "transport_diversity": len(transport_usage)
+            },
+            "travel_patterns": patterns,
+            "efficiency_metrics": {
+                "avg_speed_kmh": round(total_distance / (total_duration / 3600), 2) if total_duration > 0 else 0,
+                "trips_per_pattern": {transport_type: data["trip_count"] for transport_type, data in patterns.items()},
+                "consistency_score": round(statistics.mean([data["pattern_confidence"] for data in patterns.values()]), 3) if patterns else 0
+            }
+        }
+        
+        return {
+            "success": True,
+            "data": {
+                "user_id": user_id,
+                "travel_insights": insights,
+                "data_quality": {
+                    "sample_size": total_trips,
+                    "reliability": "high" if total_trips > 10 else "medium" if total_trips > 5 else "low"
+                }
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get user travel insights. Please try again later."
+            
+        return error_response
+
+@app.get("/analytics/dashboard")
+async def get_analytics_dashboard(request: Request):
+    """
+    Get comprehensive analytics dashboard data for admin monitoring.
+    
+    Args:
+        request: FastAPI request object containing authentication headers
+    
+    Returns:
+        JSON response with complete analytics dashboard including system metrics,
+        popular routes, transport patterns, and real-time statistics
+    """
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth):
+        return {
+            "error": "Unauthorized",
+            "message": "Invalid or missing authentication token",
+            "code": "AUTH_INVALID"
+        }
+    
+    try:
+        # Get all analytics data
+        popular_routes = travel.route_analytics.get_popular_routes(5)
+        operator_stats = travel.route_analytics.get_operator_stats()
+        
+        # Route cache statistics
+        route_count = travel.route_manager.get_routes_count() if travel.route_manager._loaded else 0
+        cache_loaded = travel.route_manager._loaded
+        
+        # Transport pattern statistics
+        transport_patterns = travel.route_analytics.transport_patterns
+        total_samples = sum(p.sample_count for p in transport_patterns.values())
+        high_confidence = sum(1 for p in transport_patterns.values() if p.confidence > 0.7)
+        
+        # Usage statistics
+        total_route_usage = sum(travel.route_analytics.route_usage_stats.values())
+        unique_routes_used = len(travel.route_analytics.route_usage_stats)
+        
+        # Calculate system health metrics
+        system_health = {
+            "route_cache_status": "healthy" if cache_loaded and route_count > 0 else "degraded",
+            "analytics_status": "active" if total_samples > 0 else "learning",
+            "detection_accuracy": round(high_confidence / len(transport_patterns) * 100, 1) if transport_patterns else 0
+        }
+        
+        # Recent activity (mock data - in production this would come from real activity logs)
+        recent_activity = {
+            "routes_accessed_last_hour": min(total_route_usage, 50),  # Simulated
+            "new_patterns_learned": sum(1 for p in transport_patterns.values() if p.sample_count > 0),
+            "cache_hits": total_route_usage
+        }
+        
+        dashboard_data = {
+            "system_overview": {
+                "total_routes": route_count,
+                "routes_cached": cache_loaded,
+                "unique_routes_used": unique_routes_used,
+                "total_usage_events": total_route_usage,
+                "system_health": system_health
+            },
+            "popular_routes": [
+                {
+                    "route_id": route_id,
+                    "usage_count": usage_count,
+                    "percentage": round(usage_count / total_route_usage * 100, 2) if total_route_usage > 0 else 0
+                }
+                for route_id, usage_count in popular_routes
+            ],
+            "transport_analytics": {
+                "total_operators": len(operator_stats),
+                "transport_types_detected": len(transport_patterns),
+                "high_confidence_patterns": high_confidence,
+                "total_learning_samples": total_samples
+            },
+            "recent_activity": recent_activity,
+            "performance_metrics": {
+                "cache_efficiency": round(total_route_usage / route_count * 100, 2) if route_count > 0 else 0,
+                "pattern_learning_rate": round(total_samples / max(len(transport_patterns), 1), 1),
+                "route_coverage": round(unique_routes_used / route_count * 100, 2) if route_count > 0 else 0
+            }
+        }
+        
+        return {
+            "success": True,
+            "data": dashboard_data,
+            "timestamp": datetime.utcnow().isoformat(),
+            "refresh_interval": 300  # Recommend refresh every 5 minutes
+        }
+        
+    except Exception as e:
+        error_response = {
+            "error": "Server error",
+            "code": "INTERNAL_ERROR",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if debug_mode:
+            error_response["detail"] = str(e)
+            error_response["type"] = type(e).__name__
+        else:
+            error_response["message"] = "Failed to get analytics dashboard. Please try again later."
             
         return error_response
