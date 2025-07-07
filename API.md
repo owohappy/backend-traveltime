@@ -61,21 +61,55 @@
 - **Endpoint:** `GET /user/{user_id}/points`
 - **Header:** `Authorization: Bearer <token>`
 - **Response:** `PointsResponse` schema
-- **Description:** Get current points for a user.
-- **Codebase:** `user/points.py`
+- **Description:** Get current points for a user with proper authorization checks.
+- **Codebase:** `routes/account.py`
 
-### User Profile
-- **Get Profile:** `GET /user/{user_id}/getData`
+### User Profile Management
+- **Get Profile:** `GET /user/{user_id}/profile`
   - **Header:** `Authorization: Bearer <token>`
-  - **Response:** `UserProfile` schema
-  - **Description:** Get user profile data.
-- **Update Profile:** `POST /user/{user_id}/updateData`
-  - **Headers:**  
-    - `field: <field_name>`  
-    - `data: <new_value>`  
-    - `Authorization: Bearer <token>`
-  - **Description:** Update user profile data.
-- **Codebase:** `user/profile.py`
+  - **Response:** Comprehensive user profile including personal info, travel stats, and achievements
+  - **Description:** Get complete user profile data with travel statistics and achievements.
+- **Update Profile:** `PUT /user/{user_id}/profile`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Body:** Form data with username, email, bio, privacy_settings
+  - **Description:** Update user profile information with validation and security checks.
+- **Codebase:** `routes/account.py`
+
+### Profile Picture Management
+- **Upload Picture:** `POST /user/{user_id}/picture`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Body:** Multipart form with image file
+  - **Description:** Upload and process profile picture with image validation, optimization, and resizing.
+- **Get Picture:** `GET /user/{user_id}/picture`
+  - **Description:** Retrieve user profile picture with fallback to default image.
+- **Codebase:** `routes/account.py`
+
+### User Achievements
+- **Endpoint:** `GET /user/{user_id}/achievements`
+- **Header:** `Authorization: Bearer <token>`
+- **Response:** User achievements and badges based on travel activity
+- **Description:** Get user achievements calculated from points, travel time, and trip statistics.
+- **Codebase:** `routes/account.py`
+
+### User Preferences
+- **Get Preferences:** `GET /user/{user_id}/preferences`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Response:** User preferences and settings
+  - **Description:** Get user preferences including notifications, privacy, and app settings.
+- **Update Preferences:** `PUT /user/{user_id}/preferences`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Body:** JSON object with preference updates
+  - **Description:** Update user preferences and settings.
+- **Codebase:** `routes/account.py`
+
+### Legacy Endpoints (Backward Compatibility)
+- **Get User Data:** `GET /user/{user_id}/getData`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Description:** Legacy endpoint - use `/user/{user_id}/profile` instead.
+- **Get User Hours:** `GET /user/{user_id}/getDataHours`
+  - **Header:** `Authorization: Bearer <token>`
+  - **Description:** Legacy endpoint for user hours data.
+- **Codebase:** `routes/account.py`
 
 ---
 

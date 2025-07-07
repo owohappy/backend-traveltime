@@ -1,8 +1,7 @@
 
 from datetime import datetime
-from cairo import Status
-from fastapi import HTTPException
-from sqlmodel import Session
+from fastapi import HTTPException, status
+from sqlmodel import Session, select
 from misc import logging, models
 
 # TODO: placeholder user data
@@ -29,7 +28,7 @@ def delete_user(user_id):
         except Exception as e:
             logging.log(f"Error deleting user {user_id}: {str(e)}", "error")
             raise HTTPException(
-                status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR, # type: ignore
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete user"
             )
 

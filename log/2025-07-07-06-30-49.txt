@@ -1,2 +1,0 @@
-[06:30:49] [33m warning:[37m Created default config.json
-[06:30:49] [36m info:[37m Email config incomplete
