@@ -20,16 +20,39 @@ config_data = config.config
 debug_mode = config_data['app']['debug']
 db_name = config_data['app']['nameDB']
 
+def check_user_access(user_id: str, current_user: dict, session: Session) -> bool:
+    """Check if current user can access the specified user's data"""
+    roles = current_user.get("roles", [])
+    user_id_from_token = current_user.get("sub")
+    
+    # Admin can access everything
+    if "admin" in roles:
+        return True
+    
+    if not user_id_from_token:
+        return False
+    
+    # Get user to check against
+    user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
+    if not user:
+        return False
+    
+    # Check if token contains user ID (with or without 'a' suffix)
+    if user_id_from_token == str(user.id) or user_id_from_token == str(user.id) + "a":
+        return True
+    
+    # Check if token contains email (legacy compatibility)
+    if user_id_from_token == user.email:
+        return True
+    
+    return False
 
 @app.get("/user/{user_id}/points")
-def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
+def user_points(user_id: str, current_user: dict = Depends(get_current_user), session: Session = Depends(db.get_session)):
     """Get user's points."""
     try:
-        user_id_from_token = current_user.get("sub")
-        roles = current_user.get("roles", [])
-        
-        # Only allow access to own points or admin
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(status_code=403, detail="Access denied")
             
         points = travel.get_user_points(user_id)
@@ -46,14 +69,11 @@ def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
 def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user), session: Session = Depends(db.get_session)):
     """Get user profile with travel stats and achievements."""
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Auth check
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Access denied - admin or owner only"
+                detail="You can only access your own profile unless you have admin privileges."
             )
         
         # Get user data
@@ -113,11 +133,8 @@ async def update_user_profile(
 ):
     """Update user profile with validation."""
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Authorization check
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
                 detail="Access denied - admin or owner only"
@@ -191,17 +208,15 @@ async def update_user_profile(
 async def upload_profile_picture(
     user_id: str, 
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    session: Session = Depends(db.get_session)
 ):
     """
     Upload and process user profile picture with image validation and optimization.
     """
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Authorization check
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
                 detail="Access denied - admin or owner only"
@@ -296,11 +311,8 @@ def get_user_achievements(user_id: str, current_user: dict = Depends(get_current
     Get user achievements and badges based on travel activity.
     """
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Auth check (achievements may be public/private)
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check if user can access this data
+        if not check_user_access(user_id, current_user, session):
             # Check if user has public achievements
             privacy_settings = get_user_preference(user_id, "privacy_settings", session)
             if privacy_settings and not privacy_settings.get("achievements_public", True):
@@ -336,11 +348,8 @@ def get_user_preferences_endpoint(user_id: str, current_user: dict = Depends(get
     Get user preferences and settings.
     """
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Authorization check
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
                 detail="Access denied - admin or owner only"
@@ -370,11 +379,8 @@ async def update_user_preferences(
     Update user preferences and settings.
     """
     try:
-        roles = current_user.get("roles", [])
-        user_id_from_token = current_user.get("sub")
-        
-        # Authorization check
-        if user_id != user_id_from_token and "admin" not in roles:
+        # Check authorization
+        if not check_user_access(user_id, current_user, session):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
                 detail="Access denied - admin or owner only"

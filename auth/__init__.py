@@ -119,9 +119,9 @@ async def login(
             )
 
         if user[0].mfa:
-            temp_token = create_temp_token({"sub": user[0].email + str("a")}) # type: ignore
+            temp_token = create_temp_token({"sub": str(user[0].id) + "a"})
             return {"temp_token": temp_token, "mfa_required": True}
-        access_token = create_access_token({"sub": str(user[0].email)})
+        access_token = create_access_token({"sub": str(user[0].id) + "a"})
         loginresponse = {
             "access_token": access_token,
             "token_type": "bearer",
