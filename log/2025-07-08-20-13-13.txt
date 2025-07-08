@@ -1,0 +1,12 @@
+[20:13:13] [36m info:[37m Email config incomplete
+[20:13:14] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[20:13:14] [36m info:[37m DB loaded
+[20:13:14] [36m info:[37m auth routes loaded
+[20:13:14] [36m info:[37m account routes loaded
+[20:13:14] [36m info:[37m travel routes loaded
+[20:13:14] [36m info:[37m misc routes loaded
+[20:13:14] [36m info:[37m gambling routes loaded
+[20:13:14] [36m info:[37m levels routes loaded
+[20:13:14] [36m info:[37m admin routes loaded
+[20:13:14] [32m success:[37m API started
+[20:13:51] [34m debug:[37m Verification URL: http://localhost:8000/verify-email/5mqdpczfnCqc674lca
