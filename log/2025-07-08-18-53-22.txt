@@ -1,0 +1,12 @@
+[18:53:22] [36m info:[37m Email config incomplete
+[18:53:22] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[18:53:22] [36m info:[37m DB loaded
+[18:53:22] [36m info:[37m auth routes loaded
+[18:53:22] [36m info:[37m account routes loaded
+[18:53:22] [36m info:[37m travel routes loaded
+[18:53:22] [36m info:[37m misc routes loaded
+[18:53:22] [36m info:[37m gambling routes loaded
+[18:53:22] [36m info:[37m levels routes loaded
+[18:53:22] [36m info:[37m admin routes loaded
+[18:53:22] [32m success:[37m API started
+[18:53:28] [31m error:[37m Error processing image: [Errno 13] Permission denied: 'misc/templates/pfp/861531921.jpg'

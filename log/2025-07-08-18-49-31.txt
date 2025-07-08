@@ -1,0 +1,23 @@
+[18:49:31] [36m info:[37m Email config incomplete
+[18:49:31] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[18:49:31] [36m info:[37m DB loaded
+[18:49:31] [36m info:[37m auth routes loaded
+[18:49:31] [36m info:[37m account routes loaded
+[18:49:31] [36m info:[37m travel routes loaded
+[18:49:31] [36m info:[37m misc routes loaded
+[18:49:31] [36m info:[37m gambling routes loaded
+[18:49:31] [36m info:[37m levels routes loaded
+[18:49:31] [36m info:[37m admin routes loaded
+[18:49:31] [32m success:[37m API started
+[18:49:42] [31m error:[37m Registration error: (sqlite3.OperationalError) no such column: user.username
+[SQL: SELECT user.id, user.email, user.hashed_password, user.created_at, user.email_verified, user.pfp_url, user.name, user.username, user.phonenumber, user.address, user.email_verified_at, user.mfa, user.mfa_secret, user.type, user.points, user.updated_at, user.xp, user.level 
+FROM user 
+WHERE user.email = ?]
+[parameters: ('test2@example.com',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[18:50:07] [31m error:[37m Error updating user profile: (sqlite3.OperationalError) no such column: user.username
+[SQL: SELECT user.id, user.email, user.hashed_password, user.created_at, user.email_verified, user.pfp_url, user.name, user.username, user.phonenumber, user.address, user.email_verified_at, user.mfa, user.mfa_secret, user.type, user.points, user.updated_at, user.xp, user.level 
+FROM user 
+WHERE user.id = ?]
+[parameters: (697420183,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

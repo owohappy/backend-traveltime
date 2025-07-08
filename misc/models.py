@@ -9,8 +9,10 @@ class User(SQLModel, table=True):
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     email_verified: bool = Field(default=False)
+    is_active: bool = Field(default=True)
     pfp_url: Optional[str] = Field(default=None, max_length=300)
     name: Optional[str] = Field(default=None, max_length=100)
+    username: Optional[str] = Field(default=None, max_length=50, unique=True)
     phonenumber: Optional[str] = Field(default=None)
     address: Optional[str] = Field(default=None)
     email_verified_at: Optional[datetime] = Field(default=None)

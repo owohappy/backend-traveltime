@@ -245,7 +245,7 @@ async def upload_profile_picture(
             )
         
         # Create directory if it doesn't exist
-        upload_dir = "misc/templates/pfp"
+        upload_dir = "/workspaces/backend-traveltime/misc/templates/pfp"
         os.makedirs(upload_dir, exist_ok=True)
         
         # Process and optimize image
@@ -271,7 +271,6 @@ async def upload_profile_picture(
             )
         
         # Update user profile picture timestamp
-        session = next(db.get_session())
         user = session.exec(select(models.User).where(models.User.id == int(user_id))).first()
         if user:
             set_user_preference(user_id, "profile_picture_updated", datetime.utcnow().isoformat(), session)
@@ -488,13 +487,17 @@ def set_user_preference(user_id: str, key: str, value, session: Session):
 
 # Legacy endpoints for backward compatibility
 @app.get("/user/{user_id}/getData")
-def user_get_data(user_id: str, token: str = Depends(schemas.Token), session: Session = Depends(db.get_session)):
+def user_get_data(user_id: str, current_user: dict = Depends(get_current_user), session: Session = Depends(db.get_session)):
     """Legacy endpoint - use /user/{user_id}/profile instead."""
+    if not check_user_access(user_id, current_user, session):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     user = account.user_get_data(user_id, session)
     return user
 
 @app.get("/user/{user_id}/getDataHours")
-def user_get_data_hours(user_id: str, token: str = Depends(schemas.Token), session: Session = Depends(db.get_session)):
+async def user_get_data_hours(user_id: str, current_user: dict = Depends(get_current_user), session: Session = Depends(db.get_session)):
     """Legacy endpoint for user hours data."""
-    user = account.user_get_data_hours(user_id, session)
+    if not check_user_access(user_id, current_user, session):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    user = await account.user_get_data_hours(user_id, session)
     return user

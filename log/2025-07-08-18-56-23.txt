@@ -1,0 +1,12 @@
+[18:56:23] [36m info:[37m Email config incomplete
+[18:56:23] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[18:56:23] [36m info:[37m DB loaded
+[18:56:23] [36m info:[37m auth routes loaded
+[18:56:23] [36m info:[37m account routes loaded
+[18:56:23] [36m info:[37m travel routes loaded
+[18:56:23] [36m info:[37m misc routes loaded
+[18:56:23] [36m info:[37m gambling routes loaded
+[18:56:23] [36m info:[37m levels routes loaded
+[18:56:23] [36m info:[37m admin routes loaded
+[18:56:23] [32m success:[37m API started
+[18:56:25] [31m error:[37m Error uploading profile picture: 'Session' object is not an iterator

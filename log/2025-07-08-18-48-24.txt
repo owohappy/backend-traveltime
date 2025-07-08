@@ -1,0 +1,13 @@
+[18:48:24] [36m info:[37m Email config incomplete
+[18:48:25] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[18:48:25] [36m info:[37m DB loaded
+[18:48:25] [36m info:[37m auth routes loaded
+[18:48:25] [36m info:[37m account routes loaded
+[18:48:25] [36m info:[37m travel routes loaded
+[18:48:25] [36m info:[37m misc routes loaded
+[18:48:25] [36m info:[37m gambling routes loaded
+[18:48:25] [36m info:[37m levels routes loaded
+[18:48:25] [36m info:[37m admin routes loaded
+[18:48:25] [32m success:[37m API started
+[18:48:34] [31m error:[37m Error getting user profile: 'User' object has no attribute 'username'
+[18:48:34] [31m error:[37m Error processing image: [Errno 13] Permission denied: 'misc/templates/pfp/697420183.jpg'

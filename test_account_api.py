@@ -13,9 +13,9 @@ from PIL import Image
 from datetime import datetime
 
 # Configuration
-BASE_URL = "http://localhost:8000"
-TEST_TOKEN = "test_token_123"  # Replace with a valid test token
-TEST_USER_ID = "12345"  # Replace with a valid test user ID
+BASE_URL = "http://localhost:8001"
+TEST_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NjE1MzE5MjFhIiwiZXhwIjoxNzUyMDg3MTkxfQ.1H-BeneZTpy080le8cq2LC7JpSGRwBoyMJFcz1R9JMk"  # Valid test token
+TEST_USER_ID = "861531921"  # Valid test user ID
 
 def make_request(method, endpoint, data=None, files=None, params=None):
     """Make HTTP request with authentication"""
