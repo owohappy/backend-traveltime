@@ -1,0 +1,11 @@
+[08:40:12] [36m info:[37m Email config incomplete
+[08:40:12] [36m info:[37m Prod DB ready: sqlite:///./db/traveltime.db
+[08:40:12] [36m info:[37m DB loaded
+[08:40:12] [36m info:[37m auth routes loaded
+[08:40:12] [36m info:[37m account routes loaded
+[08:40:12] [36m info:[37m travel routes loaded
+[08:40:12] [36m info:[37m misc routes loaded
+[08:40:12] [36m info:[37m gambling routes loaded
+[08:40:12] [36m info:[37m levels routes loaded
+[08:40:12] [36m info:[37m admin routes loaded
+[08:40:12] [32m success:[37m API started

@@ -95,7 +95,7 @@ async def resend_verification(
           summary="Enable 2FA",
           description="Initiate two-factor authentication setup process")
 async def enable_2fa(
-    current_user: models.User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     session: Session = Depends(db.get_session)
 ):
     """Enable two-factor authentication for user"""
