@@ -84,6 +84,13 @@ def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user
         # Get user hours data
         user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first()
         
+        # Create UserHours record if it doesn't exist
+        if not user_hours:
+            user_hours = models.UserHours(user_id=int(user_id))
+            session.add(user_hours)
+            session.commit()
+            session.refresh(user_hours)
+        
         # Get travel statistics
         travel_stats = travel.get_user_travel_stats(user_id, "all")
         

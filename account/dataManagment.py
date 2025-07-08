@@ -53,10 +53,14 @@ def update_user_data(user_id: str, field: str, data: str, file, session: Session
     return {"success": True, "updated_field": field, "new_value": data}
 
 def get_user_data_hours(user_id: str, session: Session):
-    user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first() # type: ignore
+    user_hours = session.exec(select(models.UserHours).where(models.UserHours.user_id == int(user_id))).first()
     if not user_hours:
-        logging.log(f"User {user_id} hours not found", "warning")
-        raise HTTPException(status_code=404, detail="User hours not found")
+        # Create UserHours record if it doesn't exist
+        user_hours = models.UserHours(user_id=int(user_id))
+        session.add(user_hours)
+        session.commit()
+        session.refresh(user_hours)
+        logging.log(f"Created UserHours record for user {user_id}", "info")
     
     # struct for hours data
     return {
