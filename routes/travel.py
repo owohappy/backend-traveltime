@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from auth.accountManagment import is_token_valid
 from misc import schemas
-from . import travel
+import travel
 from misc import config, db, models
 from levels.calcXP import calcXP
 from datetime import datetime

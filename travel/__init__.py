@@ -1360,4 +1360,19 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     
     return r * c
 
+def gpsinput(user, lat, lon):
+    return is_user_on_any_nearby_route(lat, lon)
+
+def get_user_points(user_id):
+    """Get user's current points from the database"""
+    from misc.db import get_session
+    from misc.models import User
+    from sqlmodel import select
+    
+    with get_session() as session:
+        user = session.exec(select(User).where(User.id == int(user_id))).first()
+        if user:
+            return user.points
+        return 0
+
 

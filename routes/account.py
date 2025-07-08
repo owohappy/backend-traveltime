@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, select
 from auth.accountManagment import get_current_user, is_token_valid
 from misc import db, schemas, models
-from . import travel
+import travel
 from misc import logging, config
 import auth
 import account
