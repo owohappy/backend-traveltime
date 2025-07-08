@@ -716,10 +716,40 @@ interface LocationPing {
 - **Schema Updates**: When model changes are made, delete the SQLite database file to force recreation with new schema
 
 ### Important Note on Database Schema
-If you encounter errors like `no such column: user.is_active` or similar, it means the database schema is outdated. For development with SQLite:
-1. Stop the server
+If you encounter errors like `no such column: user.is_active` or similar, it means the database schema is outdated. This commonly happens when:
+
+1. **Model changes were made** and the database wasn't recreated
+2. **Old user data exists** from a previous schema version
+3. **Multiple database files** exist and the wrong one is being used
+
+**For development with SQLite:**
+1. Stop the server: `pkill -f uvicorn`
 2. Delete the database file: `rm db/traveltime_debug.db`
-3. Restart the server - it will automatically create a new database with the current schema
+3. Restart the server: `uvicorn main:app --host 0.0.0.0 --port 8001 --reload`
+4. The server will automatically create a new database with the current schema
+
+**Quick Database Reset Script:**
+```bash
+#!/bin/bash
+# save as reset_db.sh
+pkill -f uvicorn
+rm -f db/traveltime_debug.db
+echo "Database reset. Restart the server to create fresh schema."
+```
+
+**Verification Commands:**
+```bash
+# Check current schema
+sqlite3 db/traveltime_debug.db ".schema user"
+
+# View all database files
+ls -la db/
+
+# Test the current working user
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"email": "test2@example.com", "password": "password123"}' \
+  http://localhost:8001/login
+```
 
 This happens because SQLite doesn't support all ALTER TABLE operations for adding new columns with constraints.
 
@@ -737,8 +767,8 @@ const TEST_USER = {
   address: "123 Test St"
 }
 
-// Example valid token (expires 2025-07-08)
-const TEST_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MTE3Njg0MzdhIiwiZXhwIjoxNzUyMDkxODc3fQ.aawVq31NXZ1ucHjxTiSHCamM8zPXpgIFiH2gYhT1sL4"
+// Example valid token (refreshed 2025-07-08)
+const TEST_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MTE3Njg0MzdhIiwiZXhwIjoxNzUyMDkyNjU5fQ.8auSw-qpPBTBl5L_Ek6Clp89hNthRTGD3CkA9IcsDRM"
 const TEST_USER_ID = "511768437"
 ```
 
@@ -806,6 +836,16 @@ A verification script is available at `api_verification.py` to test all major en
 ```bash
 python api_verification.py
 ```
+
+### Database Reset Script
+A database reset script is available at `reset_database.sh` to safely reset the development database:
+```bash
+./reset_database.sh
+```
+
+These scripts will:
+- **api_verification.py**: Test public endpoints, create new test user, verify all endpoints, test authorization
+- **reset_database.sh**: Stop server, backup current DB, delete old DB, provide restart instructions
 
 This script will:
 - Test public endpoints (health, docs)
