@@ -23,43 +23,37 @@ db_name = config_data['app']['nameDB']
 
 @app.get("/user/{user_id}/points")
 def user_points(user_id: str, current_user: dict = Depends(get_current_user)):
-    """
-    Get user points with proper authorization checks.
-    Users can only access their own points unless they have admin privileges.
-    """
+    """Get user's points."""
     try:
-        roles = current_user.get("roles", [])
         user_id_from_token = current_user.get("sub")
+        roles = current_user.get("roles", [])
         
+        # Only allow access to own points or admin
         if user_id != user_id_from_token and "admin" not in roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only access your own points unless you have admin privileges."
-            )
+            raise HTTPException(status_code=403, detail="Access denied")
             
         points = travel.get_user_points(user_id)
         return {"points": points, "user_id": user_id}
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.log("Error getting points: " + str(e), "error")
+        logging.log(f"Points error: {e}", "error")
         if debug_mode:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error getting points: " + str(e))
-        else:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error getting points")
+            raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error getting points")
 
 @app.get("/user/{user_id}/profile")
 def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user), session: Session = Depends(db.get_session)):
-    """
-    Get comprehensive user profile data including personal info, travel stats, and achievements.
-    """
+    """Get user profile with travel stats and achievements."""
     try:
         roles = current_user.get("roles", [])
         user_id_from_token = current_user.get("sub")
         
-        # Authorization check
+        # Auth check
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only access your own profile unless you have admin privileges."
+                detail="Access denied - admin or owner only"
             )
         
         # Get user data
@@ -117,9 +111,7 @@ async def update_user_profile(
     current_user: dict = Depends(get_current_user),
     session: Session = Depends(db.get_session)
 ):
-    """
-    Update user profile information with validation and security checks.
-    """
+    """Update user profile with validation."""
     try:
         roles = current_user.get("roles", [])
         user_id_from_token = current_user.get("sub")
@@ -128,7 +120,7 @@ async def update_user_profile(
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only update your own profile unless you have admin privileges."
+                detail="Access denied - admin or owner only"
             )
         
         # Get user
@@ -212,7 +204,7 @@ async def upload_profile_picture(
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only update your own profile picture unless you have admin privileges."
+                detail="Access denied - admin or owner only"
             )
         
         # Validate file type
@@ -307,7 +299,7 @@ def get_user_achievements(user_id: str, current_user: dict = Depends(get_current
         roles = current_user.get("roles", [])
         user_id_from_token = current_user.get("sub")
         
-        # Authorization check (achievements can be public or private based on user settings)
+        # Auth check (achievements may be public/private)
         if user_id != user_id_from_token and "admin" not in roles:
             # Check if user has public achievements
             privacy_settings = get_user_preference(user_id, "privacy_settings", session)
@@ -351,7 +343,7 @@ def get_user_preferences_endpoint(user_id: str, current_user: dict = Depends(get
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only access your own preferences unless you have admin privileges."
+                detail="Access denied - admin or owner only"
             )
         
         preferences = get_user_preferences(user_id, session)
@@ -385,7 +377,7 @@ async def update_user_preferences(
         if user_id != user_id_from_token and "admin" not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="You can only update your own preferences unless you have admin privileges."
+                detail="Access denied - admin or owner only"
             )
         
         # Update preferences
@@ -448,7 +440,7 @@ def calculate_user_achievements(user, user_hours, travel_stats) -> list:
 def get_user_preferences(user_id: str, session: Session) -> dict:
     """Get user preferences from database."""
     try:
-        # In a real implementation, this would query a user_preferences table
+        # TODO: query a user_preferences table
         # For now, return default preferences
         return {
             "notifications": {
@@ -477,8 +469,8 @@ def get_user_preference(user_id: str, key: str, session: Session):
     return preferences.get(key)
 
 def set_user_preference(user_id: str, key: str, value, session: Session):
-    """Set a user preference (placeholder for actual implementation)."""
-    # In a real implementation, this would save to a user_preferences table
+    """Set a user preference (TODO: implement database storage)."""
+    # TODO: save to a user_preferences table
     pass
 
 # Legacy endpoints for backward compatibility

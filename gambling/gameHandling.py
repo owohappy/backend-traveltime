@@ -105,9 +105,7 @@ def continueGame(gameID: str, move: str):
 
 
 def place_bet(user_id: int, game_id: int, amount: float, bet_on: str, session: Session) -> bool:
-    """
-    Place a bet in a secure way, protected against SQL injection
-    """
+    """Place a bet securely using SQLModel ORM."""
     try:
         # Use parameterized queries via SQLModel to prevent SQL injection
         user = session.exec(select(models.User).where(models.User.id == user_id)).first()

@@ -14,7 +14,7 @@ async def delete_user(
 ):
     roles = current_user.get("roles", [])
     if "admin" not in roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
     
     try:
         result = admin_handler.delete_user(user_id)

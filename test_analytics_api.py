@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Analytics API Test Suite
-Tests the new analytics endpoints for transportation route analytics and insights.
+Test the analytics API endpoints.
 """
 
 import requests
@@ -10,13 +9,12 @@ import time
 import sys
 from datetime import datetime
 
-# Configuration
 BASE_URL = "http://localhost:8000"
-TEST_TOKEN = "test_token_123"  # Replace with a valid test token
-TEST_USER_ID = "12345"  # Replace with a valid test user ID
+TEST_TOKEN = "test_token_123"  # Update with valid token
+TEST_USER_ID = "12345"
 
 def make_request(method, endpoint, data=None, params=None):
-    """Make HTTP request with authentication"""
+    """Make HTTP request with auth header."""
     url = f"{BASE_URL}{endpoint}"
     headers = {"Authorization": f"Bearer {TEST_TOKEN}"}
     

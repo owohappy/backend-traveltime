@@ -7,32 +7,32 @@ An app that rewards users for taking public transportation instead of cars. The 
 - **Authentication**: User registration, login, logout, token refresh, and two-factor authentication
 - **Account Management**: User profiles and points tracking
 - **Travel Tracking**: GPS location monitoring to verify public transport usage
-- **Route Management**: Advanced route caching with spatial indexing and multi-API integration
-- **Analytics System**: Comprehensive travel analytics with ML-based transport type detection
-- **Performance Optimization**: Lazy loading, caching, and grid-based spatial indexing
-- **Statistics & Metrics**: Leaderboards and usage statistics
-- **Admin Tools**: Route cache management and system monitoring
-- **Gambling**: Optional point gambling with card games (Blackjack)
+- **Route Management**: Route caching and spatial indexing  
+- **Analytics**: Travel analytics with transport type detection
+- **Performance**: Lazy loading and caching
+- **Statistics**: Leaderboards and user stats
+- **Admin Tools**: Route management and monitoring
+- **Gambling**: Point gambling with Blackjack
 
 ## Analytics Features
 
 ### Route Analytics
-- **Popular Routes**: Track most used transportation routes
-- **Operator Statistics**: Market share and transport type distribution
-- **Transport Pattern Learning**: ML-based transport type detection
-- **User Travel Insights**: Personalized travel analytics and recommendations
-- **Analytics Dashboard**: Comprehensive system overview and monitoring
+- **Popular Routes**: Track most used routes
+- **Operator Stats**: Market share and transport types
+- **Pattern Learning**: Auto-detect bus/train/tram
+- **User Insights**: Personal travel analytics
+- **Dashboard**: System overview
 
 ### API Endpoints
-- `/analytics/popular-routes` - Get most popular routes
-- `/analytics/operator-stats` - Operator statistics and market share
-- `/analytics/transport-patterns` - ML transport type detection patterns
-- `/analytics/user/{user_id}/travel-insights` - Personal travel analytics
-- `/analytics/dashboard` - Complete analytics dashboard
+- `/analytics/popular-routes` - Popular routes
+- `/analytics/operator-stats` - Operator stats
+- `/analytics/transport-patterns` - Transport detection
+- `/analytics/user/{user_id}/travel-insights` - User analytics
+- `/analytics/dashboard` - Admin dashboard
 
 ### Admin Endpoints
-- `/admin/routes/refresh` - Force refresh route cache
-- `/admin/routes/status` - Route cache status and performance metrics
+- `/admin/routes/refresh` - Refresh route cache
+- `/admin/routes/status` - Cache status
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ An app that rewards users for taking public transportation instead of cars. The 
 - **API Documentation**: `API.md` - Complete API reference
 - **Analytics System**: `ANALYTICS_SYSTEM.md` - Analytics features and usage
 - **Performance Improvements**: `PERFORMANCE_IMPROVEMENTS.md` - System optimizations
-- **GPS Tracking**: `GPS_TRACKING.md` - GPS tracking implementation
+- **GPS Tracking**: `GPS_TRACKING.md` - GPS tracking docs
 - **Interactive Docs**: Available at `/docs` when running the server
 
 ## Project Structure

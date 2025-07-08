@@ -4,10 +4,8 @@
 
 ### Register
 - **Endpoint:** `POST /register`
-- **Request Body:** `UserCreate` schema
-- **Note:** The references to "auth/token_handlers.py", "auth/password_reset.py", "auth/verification.py", "auth/mfa.py", "travel/confirmation.py", and "stats/metrics.py" in this documentation do not match the actual file structure. The related implementations reside in "routes/auth.py", "auth/accountManagment.py", "auth/mfaHandling.py", "routes/travel.py", and "routes/misc.py", respectively.
-- **Description:** Register a new user and receive an access token.
-- **Codebase:** `auth/routes.py`
+- **Body:** `UserCreate` schema
+- **Description:** Create a new user account
 
 ### Login
 - **Endpoint:** `POST /login`
@@ -61,18 +59,18 @@
 - **Endpoint:** `GET /user/{user_id}/points`
 - **Header:** `Authorization: Bearer <token>`
 - **Response:** `PointsResponse` schema
-- **Description:** Get current points for a user with proper authorization checks.
+- **Description:** Get current points for a user with auth checks.
 - **Codebase:** `routes/account.py`
 
 ### User Profile Management
 - **Get Profile:** `GET /user/{user_id}/profile`
   - **Header:** `Authorization: Bearer <token>`
-  - **Response:** Comprehensive user profile including personal info, travel stats, and achievements
-  - **Description:** Get complete user profile data with travel statistics and achievements.
+  - **Response:** User profile with personal info, travel stats, and achievements
+  - **Description:** Get user profile with travel data and achievements.
 - **Update Profile:** `PUT /user/{user_id}/profile`
   - **Header:** `Authorization: Bearer <token>`
   - **Body:** Form data with username, email, bio, privacy_settings
-  - **Description:** Update user profile information with validation and security checks.
+  - **Description:** Update user profile information with validation.
 - **Codebase:** `routes/account.py`
 
 ### Profile Picture Management
@@ -188,7 +186,7 @@
 ### Operator Statistics
 - **Endpoint:** `GET /analytics/operator-stats`
 - **Header:** `Authorization: Bearer <token>`
-- **Description:** Get comprehensive transportation operator statistics including market share and transport type distribution.
+- **Description:** Get operator stats including market share and transport types.
 - **Response:** Operator analytics with route counts, transport types, and market share percentages.
 - **Codebase:** `routes/travel.py`
 
@@ -203,14 +201,14 @@
 - **Endpoint:** `GET /analytics/user/{user_id}/travel-insights`
 - **Header:** `Authorization: Bearer <token>`
 - **Description:** Get personalized travel insights and analytics for a specific user including travel patterns, preferences, and efficiency metrics.
-- **Response:** Comprehensive user travel analytics with patterns, preferences, and personalized recommendations.
+- **Response:** User travel analytics with patterns and preferences.
 - **Codebase:** `routes/travel.py`
 
 ### Analytics Dashboard
 - **Endpoint:** `GET /analytics/dashboard`
 - **Header:** `Authorization: Bearer <token>`
-- **Description:** Get comprehensive analytics dashboard data for admin monitoring including system health, popular routes, and real-time statistics.
-- **Response:** Complete analytics dashboard with system metrics, transport patterns, and performance indicators.
+- **Description:** Get analytics dashboard for admin monitoring.
+- **Response:** Analytics dashboard with system metrics and route stats.
 - **Codebase:** `routes/travel.py`
 
 ---
@@ -233,7 +231,7 @@
 
 ---
 
-## Implementation Notes
+## Notes
 
 - All endpoints requiring authentication expect a JWT Bearer token in the `Authorization` header.
 - Request/response schemas are defined in `schemas/` directory.

@@ -513,9 +513,7 @@ def update_route_cache(force_update=False):
     return len(routes)
 
 class RouteManager:
-    """
-    Efficient route management with lazy loading and spatial indexing.
-    """
+    """Manages route loading and caching."""
     
     def __init__(self):
         self._routes = None
@@ -525,34 +523,33 @@ class RouteManager:
         self._cache_file = CACHE_FILE
         
     def _load_routes(self):
-        """Lazy load routes only when needed."""
+        """Load routes from cache or APIs."""
         if self._loaded:
             return
             
         print("Loading routes...")
         
         if os.path.exists(self._cache_file):
-            print("Loading routes from cache...")
             try:
                 with open(self._cache_file, "r") as f:
                     cache_data = json.load(f)
                 
-                # Check if cache is too old (older than 7 days)
+                # Check if cache is stale (7 days)
                 cache_age = time.time() - cache_data.get("cache_created", 0)
-                if cache_age > 7 * 24 * 3600:  # 7 days
-                    print("Cache is outdated, fetching fresh routes...")
+                if cache_age > 7 * 24 * 3600:
+                    print("Cache is old, fetching new routes...")
                     self._routes = get_all_routes()
                     self._update_cache()
                 else:
                     self._routes = cache_data.get("routes", [])
                     print(f"Loaded {len(self._routes)} routes from cache")
                     
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"Cache file corrupted, fetching fresh routes: {e}")
+            except Exception as e:
+                print(f"Cache corrupted: {e}")
                 self._routes = get_all_routes()
                 self._update_cache()
         else:
-            print("No cache found, fetching routes from APIs...")
+            print("No cache, fetching routes...")
             self._routes = get_all_routes()
             self._update_cache()
         
@@ -561,13 +558,11 @@ class RouteManager:
         for i, route in enumerate(self._routes):
             if len(route) > 1:
                 try:
-                    line = LineString(route)
-                    self._routes_lines.append(line)
+                    self._routes_lines.append(LineString(route))
                 except Exception as e:
-                    print(f"Error creating LineString for route {i}: {e}")
-                    continue
+                    print(f"Route {i} invalid: {e}")
         
-        # Build spatial index for faster lookups
+        # Build spatial index
         self._build_spatial_index()
         
         self._loaded = True
@@ -1086,9 +1081,7 @@ def get_user_travel_stats(user_id, timeframe="daily"):
         }
 
 class RouteAnalytics:
-    """
-    Advanced route analytics system for transport type detection and route optimization.
-    """
+    """Track route usage and learn transport patterns."""
     
     def __init__(self):
         self.analytics_cache = {}
@@ -1100,7 +1093,7 @@ class RouteAnalytics:
         self._load_transport_patterns()
     
     def _load_analytics_cache(self):
-        """Load analytics cache from file."""
+        """Load cached analytics data."""
         try:
             if os.path.exists(ANALYTICS_CACHE_FILE):
                 with open(ANALYTICS_CACHE_FILE, 'rb') as f:
@@ -1109,12 +1102,12 @@ class RouteAnalytics:
                     self.route_usage_stats = data.get('route_usage_stats', defaultdict(int))
                     self.operator_stats = data.get('operator_stats', defaultdict(lambda: defaultdict(int)))
                     self.popular_routes = data.get('popular_routes', [])
-                    print(f"Loaded analytics cache with {len(self.analytics_cache)} entries")
+                    print(f"Loaded {len(self.analytics_cache)} analytics entries")
         except Exception as e:
-            print(f"Error loading analytics cache: {e}")
+            print(f"Analytics cache load failed: {e}")
     
     def _save_analytics_cache(self):
-        """Save analytics cache to file."""
+        """Save analytics to file."""
         try:
             data = {
                 'analytics_cache': self.analytics_cache,
