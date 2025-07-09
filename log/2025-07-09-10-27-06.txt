@@ -1,0 +1,14 @@
+[10:27:06] [36m info:[37m Email config incomplete
+[10:27:06] [36m info:[37m Debug DB ready: sqlite:///./db/traveltime_debug.db
+[10:27:06] [36m info:[37m DB loaded
+[10:27:06] [36m info:[37m auth routes loaded
+[10:27:06] [36m info:[37m account routes loaded
+[10:27:06] [36m info:[37m travel routes loaded
+[10:27:06] [36m info:[37m misc routes loaded
+[10:27:06] [36m info:[37m gambling routes loaded
+[10:27:06] [36m info:[37m levels routes loaded
+[10:27:06] [36m info:[37m admin routes loaded
+[10:27:06] [32m success:[37m API started
+[10:27:25] [33m warning:[37m Failed login attempt for test@example.com
+[10:27:25] [31m error:[37m Login error: 401: Invalid credentials
+[10:27:40] [34m debug:[37m Verification URL: http://localhost:8000/verify-email/1G5xHonzLFk1DCOMKX

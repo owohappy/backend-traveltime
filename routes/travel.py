@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Request
 from auth.accountManagment import is_token_valid
 from misc import schemas
+from misc.schemas import ManualRideLog
+from misc.models import ManualRide
+from misc.db import get_session
 import travel
 from misc import config, db, models
 from levels.calcXP import calcXP
@@ -954,3 +957,234 @@ async def get_analytics_dashboard(request: Request):
             error_response["message"] = "Failed to get analytics dashboard. Please try again later."
             
         return error_response
+
+from misc.models import ManualRide
+from misc.schemas import ManualRideLog
+from misc.db import get_session
+from fastapi import Depends
+
+@app.post("/rides/manual")
+async def log_manual_ride(
+    ride: ManualRideLog,
+    request: Request
+):
+    """Log a manual ride entry for the authenticated user."""
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    # Validate JWT and extract user_id
+    if not is_token_valid(auth.replace("Bearer ", "")):
+        return {"success": False, "error": "Unauthorized"}
+    
+    try:
+        # Extract user_id from JWT using existing function
+        from auth.accountManagment import decode_access_token
+        payload = decode_access_token(auth.replace("Bearer ", ""))
+        if not payload:
+            return {"success": False, "error": "Invalid token"}
+        
+        # Extract user_id from 'sub' field (format: "user_id" + "a")
+        sub = payload.get("sub")
+        if not sub or not sub.endswith("a"):
+            return {"success": False, "error": "Invalid token format"}
+        
+        user_id = int(sub[:-1])  # Remove the 'a' suffix
+        
+    except Exception as e:
+        return {"success": False, "error": f"Invalid token: {str(e)}"}
+    
+    try:
+        with get_session() as session:
+            manual_ride = ManualRide(
+                user_id=user_id,
+                transport_type=ride.transport_type,
+                start_location=ride.start_location,
+                end_location=ride.end_location,
+                duration_minutes=ride.duration_minutes,
+                distance_km=ride.distance_km,
+                date=ride.date,
+                time=ride.time,
+                notes=ride.notes,
+                manual_entry=ride.manual_entry
+            )
+            session.add(manual_ride)
+            session.commit()
+            session.refresh(manual_ride)
+            
+            # Calculate and award XP for manual rides if duration is significant
+            if ride.duration_minutes >= 2:
+                try:
+                    xp = calcXP(str(user_id), ride.duration_minutes)
+                    return {"success": True, "ride_id": manual_ride.id, "xp_awarded": xp}
+                except Exception:
+                    return {"success": True, "ride_id": manual_ride.id}
+            
+            return {"success": True, "ride_id": manual_ride.id}
+            
+    except Exception as e:
+        if debug_mode:
+            return {"success": False, "error": f"Failed to log manual ride: {str(e)}"}
+        return {"success": False, "error": "Failed to log manual ride. Please try again."}
+
+@app.get("/rides/manual/{user_id}")
+async def get_manual_rides(user_id: str, limit: int = 10, request: Request = None):
+    """Get manual ride history for a user."""
+    headers = request.headers if request else {}
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth.replace("Bearer ", "")):
+        return {"error": "Unauthorized"}
+    
+    try:
+        # Check user access
+        from auth.accountManagment import decode_access_token
+        payload = decode_access_token(auth.replace("Bearer ", ""))
+        if not payload:
+            return {"error": "Invalid token"}
+        
+        # Extract user_id from 'sub' field (format: "user_id" + "a")
+        sub = payload.get("sub")
+        if not sub or not sub.endswith("a"):
+            return {"error": "Invalid token format"}
+        
+        request_user_id = int(sub[:-1])  # Remove the 'a' suffix
+        
+        # Only allow users to access their own data or admin access
+        if str(request_user_id) != user_id:
+            return {"error": "Access denied"}
+        
+        # Limit the number of results
+        limit = min(max(1, limit), 50)
+        
+        with get_session() as session:
+            statement = select(ManualRide).where(
+                ManualRide.user_id == int(user_id)
+            ).order_by(ManualRide.created_at.desc()).limit(limit)
+            
+            rides = session.exec(statement).all()
+            
+            ride_data = []
+            for ride in rides:
+                ride_data.append({
+                    "id": ride.id,
+                    "transport_type": ride.transport_type,
+                    "start_location": ride.start_location,
+                    "end_location": ride.end_location,
+                    "duration_minutes": ride.duration_minutes,
+                    "distance_km": ride.distance_km,
+                    "date": ride.date,
+                    "time": ride.time,
+                    "notes": ride.notes,
+                    "manual_entry": ride.manual_entry,
+                    "created_at": ride.created_at.isoformat()
+                })
+            
+            return {"success": True, "data": {
+                "rides": ride_data,
+                "total_count": len(ride_data)
+            }}
+            
+    except Exception as e:
+        if debug_mode:
+            return {"error": f"Server error: {str(e)}"}
+        return {"error": "Failed to retrieve manual rides"}
+
+@app.delete("/rides/manual/{ride_id}")
+async def delete_manual_ride(ride_id: int, request: Request):
+    """Delete a manual ride entry."""
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth.replace("Bearer ", "")):
+        return {"success": False, "error": "Unauthorized"}
+    
+    try:
+        # Validate token and extract user_id
+        from auth.accountManagment import decode_access_token
+        payload = decode_access_token(auth.replace("Bearer ", ""))
+        if not payload:
+            return {"success": False, "error": "Invalid token"}
+        
+        # Extract user_id from 'sub' field (format: "user_id" + "a")
+        sub = payload.get("sub")
+        if not sub or not sub.endswith("a"):
+            return {"success": False, "error": "Invalid token format"}
+        
+        user_id = int(sub[:-1])  # Remove the 'a' suffix
+        
+        with get_session() as session:
+            # Find the ride and verify ownership
+            statement = select(ManualRide).where(
+                ManualRide.id == ride_id,
+                ManualRide.user_id == user_id
+            )
+            ride = session.exec(statement).first()
+            
+            if not ride:
+                return {"success": False, "error": "Ride not found or access denied"}
+            
+            session.delete(ride)
+            session.commit()
+            
+            return {"success": True, "message": "Manual ride deleted successfully"}
+            
+    except Exception as e:
+        if debug_mode:
+            return {"success": False, "error": f"Failed to delete manual ride: {str(e)}"}
+        return {"success": False, "error": "Failed to delete manual ride. Please try again."}
+
+@app.put("/rides/manual/{ride_id}")
+async def update_manual_ride(ride_id: int, ride: ManualRideLog, request: Request):
+    """Update a manual ride entry."""
+    headers = request.headers
+    auth = str(headers.get("Authorization", ""))
+    
+    if not is_token_valid(auth.replace("Bearer ", "")):
+        return {"success": False, "error": "Unauthorized"}
+    
+    try:
+        # Validate token and extract user_id
+        from auth.accountManagment import decode_access_token
+        payload = decode_access_token(auth.replace("Bearer ", ""))
+        if not payload:
+            return {"success": False, "error": "Invalid token"}
+        
+        # Extract user_id from 'sub' field (format: "user_id" + "a")
+        sub = payload.get("sub")
+        if not sub or not sub.endswith("a"):
+            return {"success": False, "error": "Invalid token format"}
+        
+        user_id = int(sub[:-1])  # Remove the 'a' suffix
+        
+        with get_session() as session:
+            # Find the ride and verify ownership
+            statement = select(ManualRide).where(
+                ManualRide.id == ride_id,
+                ManualRide.user_id == user_id
+            )
+            existing_ride = session.exec(statement).first()
+            
+            if not existing_ride:
+                return {"success": False, "error": "Ride not found or access denied"}
+            
+            # Update the ride with new data
+            existing_ride.transport_type = ride.transport_type
+            existing_ride.start_location = ride.start_location
+            existing_ride.end_location = ride.end_location
+            existing_ride.duration_minutes = ride.duration_minutes
+            existing_ride.distance_km = ride.distance_km
+            existing_ride.date = ride.date
+            existing_ride.time = ride.time
+            existing_ride.notes = ride.notes
+            existing_ride.manual_entry = ride.manual_entry
+            
+            session.add(existing_ride)
+            session.commit()
+            session.refresh(existing_ride)
+            
+            return {"success": True, "ride_id": existing_ride.id, "message": "Manual ride updated successfully"}
+            
+    except Exception as e:
+        if debug_mode:
+            return {"success": False, "error": f"Failed to update manual ride: {str(e)}"}
+        return {"success": False, "error": "Failed to update manual ride. Please try again."}

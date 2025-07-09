@@ -96,3 +96,17 @@ class TokenRevocation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     revocation_time: datetime
+
+class ManualRide(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    transport_type: str
+    start_location: str
+    end_location: str
+    duration_minutes: int
+    distance_km: Optional[float] = None
+    date: str
+    time: str
+    notes: Optional[str] = None
+    manual_entry: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)

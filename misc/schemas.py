@@ -69,3 +69,14 @@ class GambleGame(BaseModel):
     status: str  # "active", "won", "lost", "push"
     player_total: int
     dealer_total: int
+
+class ManualRideLog(BaseModel):
+    transport_type: str
+    start_location: str
+    end_location: str
+    duration_minutes: int
+    distance_km: Optional[float] = None
+    date: str
+    time: str
+    notes: Optional[str] = None
+    manual_entry: bool
