@@ -9,3 +9,4 @@
 [20:23:47] [36m info:[37m levels routes loaded
 [20:23:47] [36m info:[37m admin routes loaded
 [20:23:47] [32m success:[37m API started
+[20:30:11] [34m debug:[37m Verification URL: http://localhost:8000/verify-email/pI5cK81hLdy6ZbyFKE

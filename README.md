@@ -83,21 +83,71 @@ An app that rewards users for taking public transportation instead of cars. The 
 
 ### Production Deployment
 
+#### Option 1: Automated Deployment (Recommended)
+```bash
+# Complete production deployment with SSL setup
+./deploy_production.sh
+```
+
+#### Option 2: Manual Docker Setup
 1. Copy environment variables:
      ```bash
      cp .env.example .env
      # Edit .env with your production values
      ```
 
-2. Build for production:
+2. Set up SSL certificates (for HTTPS):
+     ```bash
+     # Option A: Automated SSL setup
+     ./setup_ssl.sh
+     
+     # Option B: Manual certificate placement
+     # Place your certificate files in ssl/cert.pem and ssl/key.pem
+     ```
+
+3. Build and start services:
      ```bash
      docker-compose up -d --build
      ```
 
-3. Or run with production script:
+4. Verify deployment:
      ```bash
-     ./start_production.sh
+     # Test SSL and services
+     ./test_ssl.sh
+     
+     # Or manual testing
+     curl https://tt.owohappy.com/ping
      ```
+
+#### SSL Configuration
+
+The production deployment includes full SSL support:
+- **Automatic HTTPS redirect** from HTTP (port 80) to HTTPS (port 443)
+- **Modern SSL/TLS configuration** with strong ciphers
+- **Security headers** including HSTS, CORS, and anti-clickjacking
+- **Let's Encrypt support** for free, automated certificates
+- **Certificate auto-renewal** with monitoring
+
+**SSL Setup Options:**
+1. **Let's Encrypt** (Recommended): Free, automated, trusted certificates
+2. **Self-signed**: For testing only, shows browser warnings
+3. **Commercial certificates**: Upload your own certificates
+
+**SSL Scripts:**
+- `./setup_ssl.sh` - Interactive SSL certificate setup
+- `./renew_ssl.sh` - Automatic certificate renewal
+- `./test_ssl.sh` - Comprehensive SSL testing
+
+#### Production URLs
+- **HTTPS**: https://tt.owohappy.com (Secure, recommended)
+- **HTTP**: http://tt.owohappy.com (Redirects to HTTPS)
+- **API Health**: https://tt.owohappy.com/ping
+
+#### Legacy Production Script
+```bash
+# Simple production start (no SSL setup)
+./start_production.sh
+```
 
 ## Testing
 
@@ -116,11 +166,50 @@ An app that rewards users for taking public transportation instead of cars. The 
 
 ## Documentation
 
-- **API Documentation**: `API.md` - Complete API reference
+- **Complete API Documentation**: `COMPLETE_API_DOCUMENTATION.md` - Full API reference with all endpoints
+- **SSL Setup Guide**: `SSL_SETUP_GUIDE.md` - SSL certificate setup and management
 - **Analytics System**: `ANALYTICS_SYSTEM.md` - Analytics features and usage
 - **Performance Improvements**: `PERFORMANCE_IMPROVEMENTS.md` - System optimizations
-- **GPS Tracking**: `GPS_TRACKING.md` - GPS tracking docs
+- **GPS Tracking**: `GPS_TRACKING.md` - GPS tracking documentation
 - **Interactive Docs**: Available at `/docs` when running the server
+
+## Production Operations
+
+### Monitoring and Maintenance
+```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# SSL certificate status
+openssl x509 -in ssl/cert.pem -noout -dates
+
+# Run full system tests
+./test_ssl.sh
+```
+
+### SSL Certificate Management
+```bash
+# Check certificate expiration
+./renew_ssl.sh
+
+# Set up automatic renewal (add to crontab)
+0 2 * * * /path/to/backend-traveltime/renew_ssl.sh >> /var/log/ssl-renewal.log 2>&1
+```
+
+### Troubleshooting
+```bash
+# Reset database (careful!)
+./reset_database.sh
+
+# API verification
+python api_verification.py
+
+# Check deployment status
+python check_deployment.py
+```
 
 ## Project Structure
 

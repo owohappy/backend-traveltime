@@ -9,3 +9,4 @@
 [20:23:35] [36m info:[37m levels routes loaded
 [20:23:35] [36m info:[37m admin routes loaded
 [20:23:35] [32m success:[37m API started
+[20:29:51] [36m info:[37m Email disabled. Would send to testuser2@example.com: Verify Your Email
